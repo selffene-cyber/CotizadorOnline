@@ -255,8 +255,8 @@ export default function QuoteDetailPage() {
     try {
       const updatedQuote = {
         ...quote,
-        type: editForm.type,
-        modality: editForm.modality,
+        type: editForm.type as ProjectType,
+        modality: editForm.modality as Modality,
         region: editForm.region,
         city: editForm.city,
         executionDeadline: editForm.executionDeadline,
