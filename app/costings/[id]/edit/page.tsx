@@ -170,14 +170,7 @@ export default function EditCostingPage() {
         <SectionEquipment
           items={(quoteWithCostingData.itemsEquipment || []) as QuoteItemEquipment[]}
           onChange={updateEquipmentItems}
-          moTotal={(() => {
-            // Calcular costoDirecto desde itemsMO si totals no está disponible o no tiene la propiedad
-            if (totals && 'costoDirecto' in totals) {
-              return (totals as QuoteTotals).costoDirecto;
-            }
-            // Calcular desde itemsMO directamente
-            return (quoteWithCostingData.itemsMO || []).reduce((sum: number, item: QuoteItemMO) => sum + (item.subtotal || 0), 0);
-          })()}
+          moTotal={(quoteWithCostingData.itemsMO || []).reduce((sum: number, item: QuoteItemMO) => sum + (item.subtotal || 0), 0)}
           equipmentPercentageMO={settings?.equipmentPercentageMO}
         />
 
