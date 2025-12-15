@@ -198,7 +198,7 @@ export default function EditCostingPage() {
         />
       </div>
 
-      {totals && <ResumenEjecutivo totals={totals} />}
+      {totals && <ResumenEjecutivo totals={totals as QuoteTotals} />}
 
       <div className="flex justify-end gap-3 pt-6 border-t">
         <Button variant="outline" onClick={() => router.push('/costings')}>
