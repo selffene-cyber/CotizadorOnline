@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getQuoteById, updateQuote, duplicateQuote, deleteQuote } from '@/firebase/quotes';
 import { getClientById } from '@/firebase/clients';
-import { Quote, Client, ProjectType, Modality, Costing } from '@/types';
+import { Quote, Client, ProjectType, Modality, Costing, QuoteTotals } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Input from '@/components/ui/Input';
@@ -976,7 +976,9 @@ export default function QuoteDetailPage() {
         })()}
 
         {/* Resumen Ejecutivo */}
-        {quote.totals && (
+        {quote.totals && (() => {
+          const totals = quote.totals as unknown as QuoteTotals;
+          return (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-fade-in" style={{ animationDelay: '0.5s' }}>
             <div className="flex items-center gap-2 mb-6">
               <BanknotesIcon className="w-6 h-6 text-blue-600" />
@@ -986,42 +988,42 @@ export default function QuoteDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-600">Costo Directo:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(quote.totals?.costoDirecto || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(totals.costoDirecto || 0)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-600">Indirectos de Obra:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(quote.totals?.indirectosObra || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(totals.indirectosObra || 0)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-600">Gastos Generales:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(quote.totals?.gastosGenerales || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(totals.gastosGenerales || 0)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-gray-600">Contingencia:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(quote.totals?.contingencia || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(totals.contingencia || 0)}</span>
                 </div>
               </div>
               <div className="flex justify-between border-t-2 border-gray-300 pt-3 mt-3">
                 <span className="font-semibold text-gray-900">Costo Total:</span>
-                <span className="font-bold text-lg text-gray-900">{formatCurrency(quote.totals?.costoTotal || 0)}</span>
+                <span className="font-bold text-lg text-gray-900">{formatCurrency(totals.costoTotal || 0)}</span>
               </div>
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-xl mt-4 space-y-3 border border-blue-200">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-lg text-gray-900">Precio Neto:</span>
                   <span className="font-bold text-xl text-blue-900">
-                    {formatCurrency(quote.totals?.precioNeto || quote.totals?.precioVenta || 0)}
+                    {formatCurrency(totals.precioNeto || totals.precioVenta || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-t border-blue-300 pt-3">
                   <span className="text-gray-700 font-medium">IVA (19%):</span>
                   <span className="font-semibold text-lg text-blue-800">
-                    {formatCurrency(quote.totals?.iva || 0)}
+                    {formatCurrency(totals.iva || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-t-2 border-blue-400 pt-3 mt-2">
                   <span className="font-bold text-xl text-gray-900">TOTAL CON IVA:</span>
                   <span className="font-bold text-2xl text-blue-900">
-                    {formatCurrency(quote.totals?.totalConIva || 0)}
+                    {formatCurrency(totals.totalConIva || 0)}
                   </span>
                 </div>
               </div>
@@ -1029,13 +1031,13 @@ export default function QuoteDetailPage() {
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
                   <div className="text-sm text-gray-600 mb-1">Margen Bruto</div>
                   <div className="text-2xl font-bold text-green-700">
-                    {formatCurrency(quote.totals?.margenBruto || 0)}
+                    {formatCurrency(totals.margenBruto || 0)}
                   </div>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
                   <div className="text-sm text-gray-600 mb-1">Margen %</div>
                   <div className="text-2xl font-bold text-purple-700">
-                    {quote.totals?.margenPct ? quote.totals.margenPct.toFixed(2) : '0.00'}%
+                    {totals.margenPct ? totals.margenPct.toFixed(2) : '0.00'}%
                   </div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
@@ -1049,7 +1051,8 @@ export default function QuoteDetailPage() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
