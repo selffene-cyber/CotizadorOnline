@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getQuoteById, updateQuote, duplicateQuote, deleteQuote } from '@/firebase/quotes';
 import { getClientById } from '@/firebase/clients';
-import { Quote, Client, ProjectType, Modality } from '@/types';
+import { Quote, Client, ProjectType, Modality, Costing } from '@/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Input from '@/components/ui/Input';
@@ -915,7 +915,9 @@ export default function QuoteDetailPage() {
         </div>
 
         {/* Detalle de Items */}
-        {quote.itemsMO && quote.itemsMO.length > 0 && (
+        {(() => {
+          const quoteWithCostingData = quote as Partial<Costing & typeof quote>;
+          return quoteWithCostingData.itemsMO && quoteWithCostingData.itemsMO.length > 0 && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 animate-fade-in">
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Mano de Obra</h2>
             <div className="overflow-x-auto">
@@ -929,7 +931,7 @@ export default function QuoteDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {quote.itemsMO.map((item, idx) => (
+                {quoteWithCostingData.itemsMO.map((item, idx) => (
                   <tr key={idx} className="border-b">
                     <td className="px-4 py-2">{item.cargo}</td>
                     <td className="px-4 py-2">{item.hh}</td>
@@ -941,9 +943,12 @@ export default function QuoteDetailPage() {
             </table>
             </div>
           </div>
-        )}
+          );
+        })()}
 
-        {quote.itemsMaterials && quote.itemsMaterials.length > 0 && (
+        {(() => {
+          const quoteWithCostingData = quote as Partial<Costing & typeof quote>;
+          return quoteWithCostingData.itemsMaterials && quoteWithCostingData.itemsMaterials.length > 0 && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 animate-fade-in">
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Materiales</h2>
             <div className="overflow-x-auto">
@@ -956,7 +961,7 @@ export default function QuoteDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {quote.itemsMaterials.map((item, idx) => (
+                {quoteWithCostingData.itemsMaterials.map((item, idx) => (
                   <tr key={idx} className="border-b">
                     <td className="px-4 py-2">{item.item}</td>
                     <td className="px-4 py-2">{item.quantity} {item.unidad}</td>
@@ -1037,7 +1042,7 @@ export default function QuoteDetailPage() {
                   <div className="text-2xl font-bold text-blue-700">
                     {(quote.utilityPercentage !== undefined && quote.utilityPercentage !== null) 
                       ? quote.utilityPercentage.toFixed(2) 
-                      : (quote.ggPercentage !== undefined ? 'N/A' : '0.00')}%
+                      : ((quote as Partial<Costing & typeof quote>).ggPercentage !== undefined ? 'N/A' : '0.00')}%
                   </div>
                 </div>
               </div>
