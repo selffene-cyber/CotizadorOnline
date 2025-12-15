@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getQuoteById, updateQuote as updateQuoteFirebase } from '@/firebase/quotes';
-import { Quote, QuoteTotals } from '@/types';
+import { Quote, QuoteTotals, Costing } from '@/types';
 import { useQuote } from '@/hooks/useQuote';
 import SectionMO from '@/components/quote/costeo/SectionMO';
 import SectionMaterials from '@/components/quote/costeo/SectionMaterials';
@@ -42,6 +42,9 @@ export default function CosteoPage() {
     toggleContingency,
     updateQuote,
   } = useQuote();
+
+  // Type assertion: quote puede contener propiedades de Costing cuando se usa para costeo
+  const quoteWithCostingData = quote as Partial<Costing & typeof quote>;
 
   useEffect(() => {
     loadQuote();
@@ -162,45 +165,45 @@ export default function CosteoPage() {
         {/* Secciones de Costeo */}
         <div className="space-y-6">
         <SectionMO
-          items={quote.itemsMO || []}
+          items={(quoteWithCostingData.itemsMO || []) as any}
           onChange={updateMOItems}
           hoursPerDay={settings?.hoursPerDay}
           efficiency={settings?.efficiency}
         />
 
         <SectionMaterials
-          items={quote.itemsMaterials || []}
+          items={(quoteWithCostingData.itemsMaterials || []) as any}
           onChange={updateMaterialItems}
         />
 
         <SectionEquipment
-          items={quote.itemsEquipment || []}
+          items={(quoteWithCostingData.itemsEquipment || []) as any}
           onChange={updateEquipmentItems}
-          moTotal={totals ? quote.itemsMO?.reduce((sum, item) => sum + item.subtotal, 0) || 0 : 0}
+          moTotal={(quoteWithCostingData.itemsMO || []).reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0)}
           equipmentPercentageMO={settings?.equipmentPercentageMO}
         />
 
         <SectionLogistics
-          logistics={quote.itemsLogistics || { mode: 'km', subtotal: 0 }}
+          logistics={(quoteWithCostingData.itemsLogistics || { mode: 'km', subtotal: 0 }) as any}
           onChange={updateLogistics}
           ratePerKm={settings?.ratePerKm}
         />
 
         <SectionIndirects
-          items={quote.itemsIndirects || []}
+          items={(quoteWithCostingData.itemsIndirects || []) as any}
           onChange={updateIndirects}
         />
 
         <SectionContingencia
-          items={quote.contingencyItems || []}
-          onChange={(items) => updateQuote({ contingencyItems: items })}
+          items={(quoteWithCostingData.contingencyItems || []) as any}
+          onChange={(items) => updateQuote({ contingencyItems: items } as Partial<Costing & typeof quote>)}
         />
 
         <SectionGGUtilidad
-          ggPercentage={quote.ggPercentage || 12}
+          ggPercentage={quoteWithCostingData.ggPercentage || 12}
           utilityPercentage={quote.utilityPercentage || 55}
           utilityMin={settings?.utilityMin}
-          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility })}
+          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility } as Partial<Costing & typeof quote>)}
         />
       </div>
 
