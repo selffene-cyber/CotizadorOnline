@@ -1,0 +1,16 @@
+# docker-compose.yml optimizado para Easypanel
+# Easypanel inyecta las variables de entorno directamente, no necesita env_file
+
+version: '3.8'
+
+services:
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    # Easypanel inyecta las variables de entorno automáticamente
+    # No es necesario usar env_file aquí
+    restart: unless-stopped
+

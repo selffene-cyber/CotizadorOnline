@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "cotizadorpiwisuite"
+  },
+  "targets": {
+    "cotizadorpiwisuite": {
+      "hosting": {
+        "cotizadorpiwisuite-10a5f": [
+          "cotizadorpiwisuite-10a5f"
+        ]
+      }
+    }
+  }
+}
+

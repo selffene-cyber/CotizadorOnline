@@ -29,16 +29,16 @@ npm install
    - Copiar las credenciales de configuración
 
 4. **Configurar variables de entorno**:
-   - Copiar `.env.local.example` a `.env.local`
-   - Completar con las credenciales de Firebase:
+   - Copiar `env.example` a `.env.local`
+   - O usar directamente las credenciales del proyecto `cotizadorpiwisuite`:
 
 ```env
-NEXT_PUBLIC_FIREBASE_API_KEY=tu_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=tu_app_id
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDSOkK2VejNdwCb7CYTWqj0BZFeZriwbLc
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=cotizadorpiwisuite.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=cotizadorpiwisuite
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=cotizadorpiwisuite.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=415072535894
+NEXT_PUBLIC_FIREBASE_APP_ID=1:415072535894:web:52b4f8b34502f3d08dc2f7
 ```
 
 5. **Ejecutar el proyecto en desarrollo**:
@@ -137,6 +137,76 @@ service cloud.firestore {
 - `npm run build` - Build de producción
 - `npm run start` - Servidor de producción
 - `npm run lint` - Ejecutar linter
+
+## Docker
+
+El proyecto está configurado para ejecutarse con Docker y Docker Compose.
+
+### Prerrequisitos
+
+- Docker instalado
+- Docker Compose instalado
+
+### Desarrollo con Docker
+
+1. **Crear archivo `.env.local`** con las variables de entorno de Firebase (ver sección de configuración arriba)
+
+2. **Ejecutar en modo desarrollo**:
+```bash
+docker-compose up app-dev
+```
+
+Esto iniciará la aplicación en modo desarrollo en http://localhost:3000 con hot-reload habilitado.
+
+### Producción con Docker
+
+1. **Ejecutar en modo producción**:
+```bash
+docker-compose up app-prod
+```
+
+2. **O construir y ejecutar manualmente**:
+```bash
+docker-compose build app-prod
+docker-compose up app-prod
+```
+
+### Comandos útiles de Docker
+
+- `docker-compose up -d` - Ejecutar en segundo plano
+- `docker-compose down` - Detener y eliminar contenedores
+- `docker-compose logs -f` - Ver logs en tiempo real
+- `docker-compose ps` - Ver contenedores en ejecución
+
+## Deployment
+
+### Easypanel (Recomendado)
+
+Para desplegar en Easypanel, consulta la guía completa en [EASYPANEL.md](./EASYPANEL.md).
+
+**Configurar dominio personalizado**: Si quieres usar tu dominio `cot.piwisuite.cl` con Cloudflare, consulta [DOMINIO_CLOUDFLARE.md](./DOMINIO_CLOUDFLARE.md).
+
+### Firebase Hosting
+
+Para desplegar en Firebase Hosting, consulta [FIREBASE_HOSTING.md](./FIREBASE_HOSTING.md).
+
+**⚠️ Nota**: Firebase Hosting tiene limitaciones con Next.js App Router (no SSR, no API Routes). Para funcionalidad completa, se recomienda usar Easypanel o Cloud Run.
+
+### Variables de Entorno Requeridas para Easypanel
+
+Copia estas variables en la sección de Environment Variables de Easypanel:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDSOkK2VejNdwCb7CYTWqj0BZFeZriwbLc
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=cotizadorpiwisuite.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=cotizadorpiwisuite
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=cotizadorpiwisuite.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=415072535894
+NEXT_PUBLIC_FIREBASE_APP_ID=1:415072535894:web:52b4f8b34502f3d08dc2f7
+NODE_ENV=production
+```
+
+Las credenciales ya están configuradas. Puedes usar el archivo `easypanel.env` como referencia para copiar y pegar directamente en Easypanel.
 
 ## Notas Importantes
 
