@@ -109,7 +109,7 @@ export default function DashboardPage() {
               // Calcular margen porcentual
               const margenPct = costoTotal > 0 ? (margenBruto / costoTotal) * 100 : 0;
               
-              // Actualizar totals
+              // Actualizar totals (usar type assertion porque Quote.totals es más simple que QuoteTotals)
               updatedQuote.totals = {
                 ...updatedQuote.totals,
                 costoDirecto,
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                 subtotal,
                 iva,
                 totalConIva,
-              };
+              } as any;
             } catch (error) {
               console.error(`Error calculando totales para cotización ${quote.id}:`, error);
             }
