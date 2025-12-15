@@ -69,7 +69,7 @@ export default function CostingDetailPage() {
         if (costingData.clientId) {
           try {
             const clientData = await getClientById(costingData.clientId);
-            setClient(clientData ?? undefined);
+            setClient(clientData ?? null);
           } catch (error) {
             console.error('Error cargando cliente:', error);
           }
