@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getQuoteById, updateQuote as updateQuoteFirebase } from '@/firebase/quotes';
-import { Quote } from '@/types';
+import { Quote, QuoteTotals } from '@/types';
 import { useQuote } from '@/hooks/useQuote';
 import SectionMO from '@/components/quote/costeo/SectionMO';
 import SectionMaterials from '@/components/quote/costeo/SectionMaterials';
@@ -155,7 +155,7 @@ export default function CosteoPage() {
         {/* Resumen Ejecutivo - Siempre visible */}
         {totals && (
           <div className="mb-6 animate-fade-in">
-            <ResumenEjecutivo totals={totals} />
+            <ResumenEjecutivo totals={totals as unknown as QuoteTotals} />
           </div>
         )}
 
