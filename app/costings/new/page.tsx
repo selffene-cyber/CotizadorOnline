@@ -81,7 +81,7 @@ export default function NewCostingPage() {
       {step === 2 && (
         <WizardStep2Project
           data={projectData}
-          onChange={setProjectData}
+          onChange={(updates) => setProjectData(prev => ({ ...prev, ...updates }))}
           onNext={handleStep2Next}
           onBack={() => setStep(1)}
           nextButtonText="Crear Costeo"
