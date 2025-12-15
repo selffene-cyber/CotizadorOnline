@@ -972,7 +972,8 @@ export default function QuoteDetailPage() {
             </table>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Resumen Ejecutivo */}
         {quote.totals && (
