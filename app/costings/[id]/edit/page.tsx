@@ -37,6 +37,9 @@ export default function EditCostingPage() {
     updateQuote,
   } = useQuote();
 
+  // Type assertion: quote contiene propiedades de Costing porque viene de useQuote con datos de Costing
+  const quoteWithCostingData = quote as Partial<Costing & typeof quote>;
+
   useEffect(() => {
     loadCosting();
     loadSettings();
