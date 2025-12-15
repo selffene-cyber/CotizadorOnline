@@ -170,7 +170,7 @@ export default function EditCostingPage() {
         <SectionEquipment
           items={(quoteWithCostingData.itemsEquipment || []) as QuoteItemEquipment[]}
           onChange={updateEquipmentItems}
-          moTotal={totals?.costoDirecto || 0}
+          moTotal={(totals as QuoteTotals)?.costoDirecto || 0}
           equipmentPercentageMO={settings?.equipmentPercentageMO}
         />
 
