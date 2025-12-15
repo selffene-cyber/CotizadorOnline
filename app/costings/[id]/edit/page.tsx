@@ -187,14 +187,14 @@ export default function EditCostingPage() {
 
         <SectionContingencia
           items={(quoteWithCostingData.contingencyItems || []) as ContingencyItem[]}
-          onChange={(items) => updateQuote({ contingencyItems: items as any })}
+          onChange={(items) => updateQuote({ contingencyItems: items } as Partial<Costing & typeof quote>)}
         />
 
         <SectionGGUtilidad
           ggPercentage={quoteWithCostingData.ggPercentage || 12}
           utilityPercentage={quote.utilityPercentage || 55}
           utilityMin={settings?.utilityMin}
-          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility } as any)}
+          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility } as Partial<Costing & typeof quote>)}
         />
       </div>
 
