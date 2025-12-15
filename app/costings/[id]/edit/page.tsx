@@ -89,18 +89,22 @@ export default function EditCostingPage() {
     if (!quote.id) return;
 
     try {
+      // Type assertion: quote contiene propiedades de Costing porque viene de useQuote con datos de Costing
+      // Cuando se carga un Costing, se hace spread que incluye todas las propiedades de Costing
+      const quoteWithCostingData = quote as Partial<Costing & typeof quote>;
+      
       await updateCosting(quote.id, {
         name: quote.projectName || '',
         description: quote.scope || '',
-        type: quote.type,
-        modality: quote.modality,
-        itemsMO: quote.itemsMO || [],
-        itemsMaterials: quote.itemsMaterials || [],
-        itemsEquipment: quote.itemsEquipment || [],
-        itemsLogistics: quote.itemsLogistics || { mode: 'km', subtotal: 0 },
-        itemsIndirects: quote.itemsIndirects || [],
-        ggPercentage: quote.ggPercentage || 12,
-        contingencyItems: quote.contingencyItems || [],
+        type: quoteWithCostingData.type as ProjectType,
+        modality: quoteWithCostingData.modality as Modality,
+        itemsMO: (quoteWithCostingData.itemsMO || []) as QuoteItemMO[],
+        itemsMaterials: (quoteWithCostingData.itemsMaterials || []) as QuoteItemMaterial[],
+        itemsEquipment: (quoteWithCostingData.itemsEquipment || []) as QuoteItemEquipment[],
+        itemsLogistics: (quoteWithCostingData.itemsLogistics || { mode: 'km', subtotal: 0 }) as QuoteItemLogistics,
+        itemsIndirects: (quoteWithCostingData.itemsIndirects || []) as QuoteItemIndirect[],
+        ggPercentage: quoteWithCostingData.ggPercentage || 12,
+        contingencyItems: (quoteWithCostingData.contingencyItems || []) as ContingencyItem[],
         utilityPercentage: quote.utilityPercentage || 55,
         totals,
         updatedAt: new Date(),
