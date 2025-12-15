@@ -50,7 +50,7 @@ export default function DashboardPage() {
           if (quote.clientId && !quote.client) {
             try {
               const client = await getClientById(quote.clientId);
-              updatedQuote = { ...updatedQuote, client };
+              updatedQuote = { ...updatedQuote, client: client ?? undefined };
             } catch (error) {
               console.error(`Error cargando cliente ${quote.clientId}:`, error);
             }
