@@ -124,7 +124,7 @@ export default function DashboardPage() {
                 subtotal,
                 iva,
                 totalConIva,
-              } as any;
+              } as any as Quote['totals'];
             } catch (error) {
               console.error(`Error calculando totales para cotización ${quote.id}:`, error);
             }
