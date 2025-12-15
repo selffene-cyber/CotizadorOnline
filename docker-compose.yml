@@ -1,44 +1,17 @@
-version: '3.8'
+# Docker Compose para Easypanel
+# Eliminado 'version' (obsoleto en Docker Compose v2)
+# Servicio app-dev removido (solo para desarrollo local, usa docker-compose.dev.yml)
 
 services:
-  # Servicio de desarrollo
-  app-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: cotizador-dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-    env_file:
-      - .env.local
-    command: npm run dev
-    restart: unless-stopped
-    networks:
-      - cotizador-network
-
-  # Servicio de producción
+  # Servicio de producción para Easypanel
   app-prod:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cotizador-prod
     ports:
       - "3000:3000"
-    # Nota: env_file comentado porque Easypanel inyecta las variables directamente
-    # Las variables de entorno se configuran en el panel de Easypanel
-    # env_file:
-    #   - .env.local
+    # Nota: Easypanel inyecta las variables de entorno directamente
+    # Las variables se configuran en el panel de Easypanel
     restart: unless-stopped
-    # Networks: Easypanel maneja la red automáticamente, no es necesario definirla
-    # networks:
-    #   - cotizador-network
-
-# Networks: Easypanel maneja las redes automáticamente
-# networks:
-#   cotizador-network:
-#     driver: bridge
+    # Networks: Easypanel maneja la red automáticamente
 

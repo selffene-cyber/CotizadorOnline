@@ -1,0 +1,26 @@
+# Docker Compose para desarrollo local
+# Para usar: docker-compose -f docker-compose.dev.yml up
+
+services:
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cotizador-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env.local
+    command: npm run dev
+    restart: unless-stopped
+    networks:
+      - cotizador-network
+
+networks:
+  cotizador-network:
+    driver: bridge
+
