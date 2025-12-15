@@ -236,6 +236,8 @@ export default function QuoteDetailPage() {
         executionDeadline: quote.executionDeadline || 0,
         validity: quote.validity || 0,
         scope: quote.scope || '',
+        exclusions: quote.exclusions || '',
+        assumptions: quote.assumptions || '',
         paymentTerms: quote.paymentTerms || '',
       });
       setEditingGeneralInfo(true);
