@@ -57,7 +57,7 @@ export default function DashboardPage() {
           }
           
           // Recalcular totales si no tiene margenPct o si necesita recálculo
-          if (!updatedQuote.totals?.margenPct || updatedQuote.totals.margenPct === 0) {
+          if (!updatedQuote.totals || !('margenPct' in updatedQuote.totals) || (updatedQuote.totals as any).margenPct === 0) {
             try {
               let costoDirecto = 0;
               let indirectosObra = 0;
@@ -175,7 +175,7 @@ export default function DashboardPage() {
 
   const totalValue = quotes.reduce((sum, q) => sum + (q.totals?.totalConIva || 0), 0);
   const avgMargin = quotes.length > 0
-    ? quotes.reduce((sum, q) => sum + (q.totals?.margenPct || 0), 0) / quotes.length
+    ? quotes.reduce((sum, q) => sum + (('margenPct' in (q.totals || {})) ? (q.totals as any).margenPct || 0 : 0), 0) / quotes.length
     : 0;
   const thisMonth = quotes.filter(q => {
     const created = parseDate(q.createdAt) || new Date(0);
@@ -330,8 +330,8 @@ export default function DashboardPage() {
                   key: 'margin',
                   header: 'Margen',
                   render: (quote) => 
-                    (quote.totals?.margenPct !== undefined && quote.totals.margenPct !== null 
-                      ? quote.totals.margenPct.toFixed(1) 
+                    (quote.totals && 'margenPct' in quote.totals && (quote.totals as any).margenPct !== undefined && (quote.totals as any).margenPct !== null 
+                      ? (quote.totals as any).margenPct.toFixed(1) 
                       : '0.0') + '%',
                   align: 'right',
                   mobileLabel: 'Margen',
