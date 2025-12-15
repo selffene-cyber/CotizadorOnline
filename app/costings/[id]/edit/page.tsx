@@ -156,45 +156,45 @@ export default function EditCostingPage() {
 
       <div className="space-y-6">
         <SectionMO
-          items={quote.itemsMO || []}
+          items={(quoteWithCostingData.itemsMO || []) as QuoteItemMO[]}
           onChange={updateMOItems}
           hoursPerDay={settings?.hoursPerDay}
           efficiency={settings?.efficiency}
         />
 
         <SectionMaterials
-          items={quote.itemsMaterials || []}
+          items={(quoteWithCostingData.itemsMaterials || []) as QuoteItemMaterial[]}
           onChange={updateMaterialItems}
         />
 
         <SectionEquipment
-          items={quote.itemsEquipment || []}
+          items={(quoteWithCostingData.itemsEquipment || []) as QuoteItemEquipment[]}
           onChange={updateEquipmentItems}
           moTotal={totals?.costoDirecto || 0}
           equipmentPercentageMO={settings?.equipmentPercentageMO}
         />
 
         <SectionLogistics
-          logistics={quote.itemsLogistics || { mode: 'km', subtotal: 0 }}
+          logistics={(quoteWithCostingData.itemsLogistics || { mode: 'km', subtotal: 0 }) as QuoteItemLogistics}
           onChange={updateLogistics}
           ratePerKm={settings?.ratePerKm}
         />
 
         <SectionIndirects
-          items={quote.itemsIndirects || []}
+          items={(quoteWithCostingData.itemsIndirects || []) as QuoteItemIndirect[]}
           onChange={updateIndirects}
         />
 
         <SectionContingencia
-          items={quote.contingencyItems || []}
-          onChange={(items) => updateQuote({ contingencyItems: items })}
+          items={(quoteWithCostingData.contingencyItems || []) as ContingencyItem[]}
+          onChange={(items) => updateQuote({ contingencyItems: items as any })}
         />
 
         <SectionGGUtilidad
-          ggPercentage={quote.ggPercentage || 12}
+          ggPercentage={quoteWithCostingData.ggPercentage || 12}
           utilityPercentage={quote.utilityPercentage || 55}
           utilityMin={settings?.utilityMin}
-          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility })}
+          onChange={(gg, utility) => updateQuote({ ggPercentage: gg, utilityPercentage: utility } as any)}
         />
       </div>
 
