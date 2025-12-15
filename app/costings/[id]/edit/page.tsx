@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getCostingById, updateCosting } from '@/firebase/costings';
-import { Costing } from '@/types';
+import { Costing, ProjectType, Modality, QuoteItemMO, QuoteItemMaterial, QuoteItemEquipment, QuoteItemLogistics, QuoteItemIndirect, ContingencyItem } from '@/types';
 import { useQuote } from '@/hooks/useQuote';
 import SectionMO from '@/components/quote/costeo/SectionMO';
 import SectionMaterials from '@/components/quote/costeo/SectionMaterials';
