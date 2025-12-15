@@ -22,7 +22,7 @@ export default function CostingsPage() {
       const allCostings = await getAllCostings();
       
       // Asignar números correlativos a costeos que no lo tengan y guardarlos
-      const costingsWithoutNumber = allCostings.filter(c => !c.costingNumber);
+      const costingsWithoutNumber = allCostings.filter((c: Costing) => !c.costingNumber);
       
       if (costingsWithoutNumber.length > 0) {
         // Ordenar por fecha de creación (más antiguos primero)
