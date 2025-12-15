@@ -132,7 +132,7 @@ export default function QuoteDetailPage() {
           subtotal,
           iva,
           totalConIva,
-        };
+        } as any as Quote['totals'];
         
         // Si no tiene utilityPercentage, intentar obtenerlo del costeo asociado
         if ((quoteData.utilityPercentage === undefined || quoteData.utilityPercentage === null || quoteData.utilityPercentage === 0) 
