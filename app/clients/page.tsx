@@ -180,7 +180,8 @@ export default function ClientsPage() {
           if (!quote.client && quote.clientId) {
             try {
               const clientData = await getClientById(quote.clientId);
-              updatedQuote = { ...updatedQuote, client: clientData };
+              // Convertir null a undefined para compatibilidad de tipos
+              updatedQuote = { ...updatedQuote, client: clientData ?? undefined };
             } catch (error) {
               // Continuar sin cliente
             }
