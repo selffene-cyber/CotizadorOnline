@@ -3,13 +3,12 @@
 // Página para gestionar items de cotización
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Quote, QuoteLineItem } from '@/types';
+import { Quote, QuoteLineItem, Costing } from '@/types';
 import { getQuoteById, updateQuote } from '@/firebase/quotes';
 import { getClientById } from '@/firebase/clients';
 import QuoteItemsEditor from '@/components/quote/QuoteItemsEditor';
 import Button from '@/components/ui/Button';
 import SelectCostingModal from '@/components/quote/SelectCostingModal';
-import { Costing, QuoteLineItem } from '@/types';
 
 export default function QuoteItemsPage() {
   const router = useRouter();
