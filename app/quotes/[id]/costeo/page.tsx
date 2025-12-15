@@ -53,9 +53,9 @@ export default function CosteoPage() {
       const quoteData = await getQuoteById(quoteId);
       if (quoteData) {
         // Si no tiene totales o le faltan los nuevos campos de IVA, recalcular
-        if (!quoteData.totals || !quoteData.totals.precioNeto || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
+        if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
           const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
-          quoteData.totals = calculateQuoteTotals(quoteData);
+          quoteData.totals = calculateQuoteTotals(quoteData) as any as typeof quoteData.totals;
         }
         updateQuote(quoteData);
       } else {
