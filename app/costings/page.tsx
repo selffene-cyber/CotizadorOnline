@@ -34,9 +34,9 @@ export default function CostingsPage() {
         
         // Obtener el máximo número correlativo existente
         const existingNumbers = allCostings
-          .filter(c => c.costingNumber)
-          .map(c => c.costingNumber!)
-          .filter(n => n > 0);
+          .filter((c: Costing) => c.costingNumber)
+          .map((c: Costing) => c.costingNumber!)
+          .filter((n: number) => n > 0);
         const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
         
         // Asignar números correlativos a los costeos sin número
