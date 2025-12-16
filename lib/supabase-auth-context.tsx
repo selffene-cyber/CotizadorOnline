@@ -14,7 +14,17 @@ interface AuthContextType {
   signInWithGithub: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Crear un contexto con valores por defecto para evitar errores durante la hidratación
+const defaultContextValue: AuthContextType = {
+  user: null,
+  loading: true,
+  signIn: async () => { throw new Error('AuthProvider no está inicializado'); },
+  signUp: async () => { throw new Error('AuthProvider no está inicializado'); },
+  signOut: async () => {},
+  signInWithGithub: async () => { throw new Error('AuthProvider no está inicializado'); },
+};
+
+const AuthContext = createContext<AuthContextType>(defaultContextValue);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -180,9 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  // El contexto siempre tiene un valor por defecto, así que no necesitamos verificar undefined
   return context;
 }
 
