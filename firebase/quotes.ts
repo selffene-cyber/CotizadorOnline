@@ -1,3 +1,3 @@
-// Helpers para manejo de Cotizaciones - Usa mock en desarrollo local
-export * from './mock-quotes';
+// Helpers para manejo de Cotizaciones - Migrado a Supabase
+export * from '../supabase/quotes';
 

@@ -66,7 +66,7 @@ export default function EditCostingPage() {
           version: 1,
           quoteItems: [],
         };
-        updateQuote(quoteData);
+        updateQuote(quoteData as any);
       } else {
         alert('Costeo no encontrado');
         router.push('/costings');

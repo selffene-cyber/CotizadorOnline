@@ -14,6 +14,8 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@react-pdf/renderer": "^4.3.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.87.3",
     "docx": "^9.5.1",
     "firebase": "^12.6.0",
     "next": "16.0.10",

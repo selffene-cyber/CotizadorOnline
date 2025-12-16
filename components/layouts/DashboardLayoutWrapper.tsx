@@ -3,7 +3,7 @@
 // Componente de layout compartido para todas las rutas protegidas
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/mock-auth-context';
+import { useAuth } from '@/lib/supabase-auth-context';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import BackButton from '@/components/ui/BackButton';

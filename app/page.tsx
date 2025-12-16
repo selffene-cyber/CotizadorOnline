@@ -3,7 +3,7 @@
 // Página principal - redirige según autenticación
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/mock-auth-context';
+import { useAuth } from '@/lib/supabase-auth-context';
 
 export default function Home() {
   const { user, loading } = useAuth();
