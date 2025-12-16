@@ -10,15 +10,19 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Solo redirigir cuando la carga esté completa y tengamos una respuesta válida
     if (!loading) {
+      // Si hay un usuario autenticado, ir al dashboard
       if (user) {
         router.push('/dashboard');
       } else {
+        // Si no hay usuario, ir al login
         router.push('/login');
       }
     }
   }, [user, loading, router]);
 
+  // Mostrar loading mientras se verifica la autenticación
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
