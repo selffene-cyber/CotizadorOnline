@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/mock-auth-context';
+import { useAuth } from '@/lib/supabase-auth-context';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { 
