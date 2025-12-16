@@ -110,7 +110,6 @@ export async function duplicateQuote(quoteId: string): Promise<string> {
 
   const newQuote: Omit<Quote, 'id'> = {
     ...original,
-    id: undefined,
     version: nextVersion,
     parentQuoteId: original.id || quoteId,
     status: 'Borrador',

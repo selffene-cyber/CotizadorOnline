@@ -209,7 +209,7 @@ export default function SectionEquipment({
                   <td className="px-4 py-2">
                     <select
                       value={item.unit}
-                      onChange={(e) => updateItem(index, { unit: e.target.value })}
+                      onChange={(e) => updateItem(index, { unit: e.target.value as 'día' | 'hora' })}
                       className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-400 transition-all"
                     >
                       {ALL_UNITS.map((unit) => (

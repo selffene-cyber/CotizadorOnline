@@ -1,8 +1,8 @@
 // Exportador a Word (DOCX)
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
-import { Quote, Client } from '@/types';
+import { Quote, Client, Costing } from '@/types';
 
-export async function exportToWord(quote: Quote, client: Client | null): Promise<Blob> {
+export async function exportToWord(quote: Quote & Costing, client: Client | null): Promise<Blob> {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',

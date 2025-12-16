@@ -58,9 +58,9 @@ export default function CosteoPage() {
         // Si no tiene totales o le faltan los nuevos campos de IVA, recalcular
         if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
           const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
-          quoteData.totals = calculateQuoteTotals(quoteData) as any as typeof quoteData.totals;
+          quoteData.totals = calculateQuoteTotals(quoteData as any) as any as typeof quoteData.totals;
         }
-        updateQuote(quoteData);
+        updateQuote(quoteData as any);
       } else {
         alert('Cotización no encontrada');
         router.push('/dashboard');

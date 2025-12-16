@@ -357,6 +357,7 @@ export default function WizardStep1Client({ clientId, onNext }: WizardStep1Clien
                   email: '',
                   phone: '',
                   address: '',
+                  region: '',
                   city: '',
                 });
               }}

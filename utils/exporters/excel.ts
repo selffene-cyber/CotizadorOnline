@@ -1,8 +1,8 @@
 // Exportador a Excel
 import * as XLSX from 'xlsx';
-import { Quote, Client } from '@/types';
+import { Quote, Client, QuoteTotals, Costing } from '@/types';
 
-export function exportToExcel(quote: Quote, client: Client | null, fileName?: string): void {
+export function exportToExcel(quote: Quote & Costing, client: Client | null, fileName?: string): void {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -32,18 +32,18 @@ export function exportToExcel(quote: Quote, client: Client | null, fileName?: st
     ['Ciudad', client?.city || ''],
     [''],
     ['RESUMEN DE COSTOS'],
-    ['Costo Directo', quote.totals ? formatCurrency(quote.totals.costoDirecto) : ''],
-    ['Indirectos de Obra', quote.totals ? formatCurrency(quote.totals.indirectosObra) : ''],
-    ['Subtotal Costo', quote.totals ? formatCurrency(quote.totals.subtotalCosto) : ''],
-    [`Gastos Generales (${quote.ggPercentage}%)`, quote.totals ? formatCurrency(quote.totals.gastosGenerales) : ''],
-    ['Base', quote.totals ? formatCurrency(quote.totals.base) : ''],
-    ['Contingencia', quote.totals ? formatCurrency(quote.totals.contingencia) : ''],
-    ['Costo Total', quote.totals ? formatCurrency(quote.totals.costoTotal) : ''],
-    ['Precio Neto', quote.totals ? formatCurrency(quote.totals.precioNeto) : ''],
-    ['IVA (19%)', quote.totals ? formatCurrency(quote.totals.iva) : ''],
-    ['TOTAL CON IVA', quote.totals ? formatCurrency(quote.totals.totalConIva) : ''],
-    ['Margen Bruto', quote.totals ? formatCurrency(quote.totals.margenBruto) : ''],
-    ['Margen %', quote.totals ? `${quote.totals.margenPct.toFixed(2)}%` : ''],
+    ['Costo Directo', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).costoDirecto) : ''],
+    ['Indirectos de Obra', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).indirectosObra) : ''],
+    ['Subtotal Costo', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).subtotalCosto) : ''],
+    [`Gastos Generales (${(quote as unknown as Costing).ggPercentage || 0}%)`, quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).gastosGenerales) : ''],
+    ['Base', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).base) : ''],
+    ['Contingencia', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).contingencia) : ''],
+    ['Costo Total', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).costoTotal) : ''],
+    ['Precio Neto', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).precioNeto) : ''],
+    ['IVA (19%)', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).iva) : ''],
+    ['TOTAL CON IVA', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).totalConIva) : ''],
+    ['Margen Bruto', quote.totals ? formatCurrency((quote.totals as unknown as QuoteTotals).margenBruto) : ''],
+    ['Margen %', quote.totals ? `${(quote.totals as unknown as QuoteTotals).margenPct.toFixed(2)}%` : ''],
   ];
 
   const resumenSheet = XLSX.utils.aoa_to_sheet(resumenData);

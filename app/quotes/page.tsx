@@ -62,7 +62,7 @@ export default function QuotesPage() {
           }
           
           // Si ya tiene margenPct calculado y es válido, retornar con cliente cargado
-          if (updatedQuote.totals?.margenPct !== undefined && updatedQuote.totals.margenPct !== null) {
+          if (updatedQuote.totals && 'margenPct' in updatedQuote.totals && (updatedQuote.totals as any).margenPct !== undefined && (updatedQuote.totals as any).margenPct !== null) {
             return updatedQuote;
           }
           

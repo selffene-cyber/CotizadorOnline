@@ -1,10 +1,10 @@
 // Hook para manejo de estado de cotización
 import { useState, useEffect } from 'react';
-import { Quote, Client } from '@/types';
+import { Quote, Client, Costing, QuoteTotals } from '@/types';
 import { calculateQuoteTotals } from '@/utils/calculations/quoteTotals';
 import { getClientById } from '@/firebase/clients';
 
-const initialQuote: Partial<Quote> = {
+const initialQuote: Partial<Quote & Costing> = {
   status: 'Borrador',
   version: 1,
   type: 'Fabricación',
@@ -33,20 +33,20 @@ const initialQuote: Partial<Quote> = {
 };
 
 export function useQuote(initialQuoteData?: Partial<Quote>) {
-  const [quote, setQuote] = useState<Partial<Quote>>(() => {
+  const [quote, setQuote] = useState<Partial<Quote & Costing>>(() => {
     if (initialQuoteData) {
       // Si hay datos iniciales, calcular totales
       try {
-        const calculatedTotals = calculateQuoteTotals(initialQuoteData as Quote);
-        return { ...initialQuoteData, totals: calculatedTotals };
+        const calculatedTotals = calculateQuoteTotals(initialQuoteData as any);
+        return { ...initialQuoteData, totals: calculatedTotals } as Partial<Quote & Costing>;
       } catch {
-        return initialQuoteData;
+        return initialQuoteData as Partial<Quote & Costing>;
       }
     }
     return initialQuote;
   });
   const [client, setClient] = useState<Client | null>(null);
-  const [totals, setTotals] = useState(quote.totals);
+  const [totals, setTotals] = useState<QuoteTotals | undefined>(quote.totals as QuoteTotals | undefined);
   const [loading, setLoading] = useState(false);
 
   // Cargar datos del cliente si hay clientId
@@ -69,83 +69,84 @@ export function useQuote(initialQuoteData?: Partial<Quote>) {
   };
 
   // Actualizar cotización
-  const updateQuote = (updates: Partial<Quote>) => {
+  const updateQuote = (updates: Partial<Quote & Costing>) => {
     const updated = { ...quote, ...updates };
-    setQuote(updated);
     
     // Recalcular totales siempre (esto asegura que siempre haya precioNeto, iva, totalConIva)
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Actualizar items de MO
-  const updateMOItems = (items: Quote['itemsMO']) => {
+  const updateMOItems = (items: Costing['itemsMO']) => {
     const updated = { ...quote, itemsMO: items };
-    setQuote(updated);
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Actualizar items de Materiales
-  const updateMaterialItems = (items: Quote['itemsMaterials']) => {
+  const updateMaterialItems = (items: Costing['itemsMaterials']) => {
     const updated = { ...quote, itemsMaterials: items };
-    setQuote(updated);
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Actualizar items de Equipos
-  const updateEquipmentItems = (items: Quote['itemsEquipment']) => {
+  const updateEquipmentItems = (items: Costing['itemsEquipment']) => {
     const updated = { ...quote, itemsEquipment: items };
-    setQuote(updated);
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Actualizar logística
-  const updateLogistics = (logistics: Quote['itemsLogistics']) => {
+  const updateLogistics = (logistics: Costing['itemsLogistics']) => {
     const updated = { ...quote, itemsLogistics: logistics };
-    setQuote(updated);
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Actualizar indirectos
-  const updateIndirects = (indirects: Quote['itemsIndirects']) => {
+  const updateIndirects = (indirects: Costing['itemsIndirects']) => {
     const updated = { ...quote, itemsIndirects: indirects };
-    setQuote(updated);
     try {
-      const calculatedTotals = calculateQuoteTotals(updated as Quote);
+      const calculatedTotals = calculateQuoteTotals(updated as any);
       setTotals(calculatedTotals);
-      updated.totals = calculatedTotals;
+      (updated as any).totals = calculatedTotals;
     } catch (error) {
       console.error('Error calculando totales:', error);
     }
+    setQuote(updated as Partial<Quote & Costing>);
   };
 
   // Agregar/remover contingencia

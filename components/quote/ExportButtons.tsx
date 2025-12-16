@@ -121,7 +121,7 @@ export default function ExportButtons({ quote, client }: ExportButtonsProps) {
     setExporting('word');
     setShowDropdown(false);
     try {
-      const blob = await exportToWord(quote, client);
+      const blob = await exportToWord(quote as any, client);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -142,7 +142,7 @@ export default function ExportButtons({ quote, client }: ExportButtonsProps) {
     setExporting('excel');
     setShowDropdown(false);
     try {
-      exportToExcel(quote, client, getExportFileName('xlsx'));
+      exportToExcel(quote as any, client, getExportFileName('xlsx'));
     } catch (error) {
       console.error('Error exportando a Excel:', error);
       alert('Error al exportar a Excel');

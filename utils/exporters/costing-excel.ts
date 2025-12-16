@@ -80,7 +80,7 @@ export function exportCostingToExcel(costing: Costing): void {
     const equipmentData = [
       ['ITEM', 'UNIDAD', 'CANTIDAD', 'TARIFA', 'SUBTOTAL'],
       ...costing.itemsEquipment.map(item => [
-        item.item,
+        item.equipment,
         item.unit,
         item.quantity,
         formatCurrency(item.rate),
@@ -96,22 +96,21 @@ export function exportCostingToExcel(costing: Costing): void {
   if (costing.itemsLogistics && costing.itemsLogistics.subtotal > 0) {
     const logisticsData = [
       ['MODO', costing.itemsLogistics.mode === 'km' ? 'Por Kilómetros' :
-                costing.itemsLogistics.mode === 'viatico' ? 'Viático' :
-                costing.itemsLogistics.mode === 'fixed' ? 'Monto Fijo' : costing.itemsLogistics.mode],
+                costing.itemsLogistics.mode === 'viatico' ? 'Viático' : costing.itemsLogistics.mode],
     ];
 
     if (costing.itemsLogistics.mode === 'km') {
-      if (costing.itemsLogistics.km) logisticsData.push(['Kilómetros', costing.itemsLogistics.km]);
+      if (costing.itemsLogistics.km) logisticsData.push(['Kilómetros', String(costing.itemsLogistics.km)]);
       if (costing.itemsLogistics.ratePerKm) logisticsData.push(['Tarifa por Km', formatCurrency(costing.itemsLogistics.ratePerKm)]);
     }
 
     if (costing.itemsLogistics.mode === 'viatico') {
-      if (costing.itemsLogistics.days) logisticsData.push(['Días', costing.itemsLogistics.days]);
+      if (costing.itemsLogistics.days) logisticsData.push(['Días', String(costing.itemsLogistics.days)]);
       if (costing.itemsLogistics.viaticoPerDay) logisticsData.push(['Viático por Día', formatCurrency(costing.itemsLogistics.viaticoPerDay)]);
       if (costing.itemsLogistics.accommodation) logisticsData.push(['Alojamiento', formatCurrency(costing.itemsLogistics.accommodation)]);
     }
 
-    if (costing.itemsLogistics.mode === 'fixed' && costing.itemsLogistics.fixedMobilization) {
+    if (costing.itemsLogistics.fixedMobilization) {
       logisticsData.push(['Monto Fijo', formatCurrency(costing.itemsLogistics.fixedMobilization)]);
     }
 

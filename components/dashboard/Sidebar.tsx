@@ -239,7 +239,7 @@ export default function Sidebar() {
                     </button>
                     {hasSubmenu && (!isCollapsed || !isDesktop) && isSubmenuOpen && (
                       <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 pl-2">
-                        {item.submenu.map((subItem) => {
+                        {item.submenu?.map((subItem) => {
                           const SubIconComponent = subItem.icon;
                           const isSubActive = pathname === subItem.href || pathname?.startsWith(subItem.href + '/');
                           return (

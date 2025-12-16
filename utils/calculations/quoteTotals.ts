@@ -1,10 +1,10 @@
 // Cálculos de totales de cotización
-import { Quote, QuoteTotals } from '@/types';
+import { Quote, QuoteTotals, Costing } from '@/types';
 
 /**
  * Calcula todos los totales de una cotización
  */
-export function calculateQuoteTotals(quote: Quote): QuoteTotals {
+export function calculateQuoteTotals(quote: Quote & Costing): QuoteTotals {
   // 1. Costo Directo = MO + Materiales + Equipos + Logística
   const totalMO = (quote.itemsMO || []).reduce((sum, item) => sum + (item.subtotal || 0), 0);
   const totalMaterials = (quote.itemsMaterials || []).reduce((sum, item) => sum + (item.subtotal || 0), 0);

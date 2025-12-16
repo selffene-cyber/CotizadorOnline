@@ -98,7 +98,7 @@ export default function RichTextEditor({
       
       if (success) {
         // Si se especificó un estilo de lista, aplicarlo
-        if (ordered && listStyle) {
+        if (ordered && listStyle && editorRef.current) {
           const lists = editorRef.current.querySelectorAll('ol');
           if (lists.length > 0) {
             const lastList = lists[lists.length - 1] as HTMLOListElement;
@@ -118,7 +118,7 @@ export default function RichTextEditor({
       if (!selection || selection.rangeCount === 0) return;
       
       const range = selection.getRangeAt(0);
-      let node = range.startContainer;
+      let node: Node | null = range.startContainer;
       
       // Buscar si estamos dentro de una lista
       while (node && node !== editorRef.current) {
