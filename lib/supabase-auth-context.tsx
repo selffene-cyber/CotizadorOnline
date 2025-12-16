@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Intentar inicializar Supabase de forma segura
     let mounted = true;
+    let subscription: any = null;
     
     const initAuth = async () => {
       try {
@@ -55,20 +56,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Escuchar cambios de autenticación
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (mounted) {
-            setUser(session?.user ?? null);
-            setLoading(false);
-          }
-        });
-
-        return () => {
-          if (subscription) {
-            subscription.unsubscribe();
-          }
-        };
+        try {
+          const {
+            data: { subscription: authSubscription },
+          } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (mounted) {
+              setUser(session?.user ?? null);
+              setLoading(false);
+            }
+          });
+          subscription = authSubscription;
+        } catch (error) {
+          console.error('[AuthProvider] Error setting up auth state listener:', error);
+        }
       } catch (error) {
         console.error('[AuthProvider] Error initializing Supabase client:', error);
         if (mounted) {
@@ -77,10 +77,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    initAuth();
+    // Solo inicializar en el cliente
+    if (typeof window !== 'undefined') {
+      initAuth();
+    } else {
+      // En el servidor, solo marcar como no cargando
+      setLoading(false);
+    }
 
     return () => {
       mounted = false;
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          // Ignorar errores al desuscribirse
+        }
+      }
     };
   }, []);
 
@@ -148,8 +161,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Asegurar que siempre proporcionemos un contexto válido
+  const contextValue: AuthContextType = {
+    user,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    signInWithGithub,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, signInWithGithub }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
