@@ -3,11 +3,30 @@ import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
 
 // Función para cargar .env si existe (para Easypanel cuando "Crear archivo .env" está activado)
+// En desarrollo local, Next.js carga automáticamente .env.local, pero esta función ayuda en producción
 function loadEnvFile() {
   if (typeof window === 'undefined') {
     try {
       const fs = require('fs');
       const path = require('path');
+      
+      // Intentar cargar .env.local primero (desarrollo local)
+      const envLocalPath = path.join(process.cwd(), '.env.local');
+      if (fs.existsSync(envLocalPath)) {
+        const envContent = fs.readFileSync(envLocalPath, 'utf8');
+        envContent.split('\n').forEach((line: string) => {
+          const trimmedLine = line.trim();
+          if (trimmedLine && !trimmedLine.startsWith('#')) {
+            const [key, ...valueParts] = trimmedLine.split('=');
+            if (key && valueParts.length > 0) {
+              const value = valueParts.join('=').trim();
+              process.env[key.trim()] = value;
+            }
+          }
+        });
+      }
+      
+      // También intentar .env (para Easypanel)
       const envPath = path.join(process.cwd(), '.env');
       if (fs.existsSync(envPath)) {
         const envContent = fs.readFileSync(envPath, 'utf8');
@@ -17,8 +36,10 @@ function loadEnvFile() {
             const [key, ...valueParts] = trimmedLine.split('=');
             if (key && valueParts.length > 0) {
               const value = valueParts.join('=').trim();
-              // Siempre sobrescribir para asegurar que las variables del .env se usen
-              process.env[key.trim()] = value;
+              // Solo sobrescribir si no existe ya (prioridad a .env.local)
+              if (!process.env[key.trim()]) {
+                process.env[key.trim()] = value;
+              }
             }
           }
         });

@@ -201,6 +201,35 @@ export async function deleteUser(userId: string): Promise<void> {
 }
 
 /**
+ * Obtener estadísticas del sistema (solo super admin)
+ */
+export async function getSystemStats() {
+  try {
+    const [usersCount, tenantsCount, requestsCount] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('tenants').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('access_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+    ]);
+
+    return {
+      totalUsers: usersCount.count || 0,
+      totalTenants: tenantsCount.count || 0,
+      pendingRequests: requestsCount.count || 0,
+    };
+  } catch (error) {
+    console.error('[getSystemStats] Error:', error);
+    return {
+      totalUsers: 0,
+      totalTenants: 0,
+      pendingRequests: 0,
+    };
+  }
+}
+
+/**
  * Crear solicitud de acceso
  */
 export async function createAccessRequest(email: string, userId: string): Promise<void> {
