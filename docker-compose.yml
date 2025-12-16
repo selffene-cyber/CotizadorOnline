@@ -4,6 +4,9 @@
 
 services:
   # Servicio de producción para Easypanel
+  # Nota: El nombre del servicio debe coincidir con lo que Easypanel genera automáticamente
+  # Easypanel genera: piwisuite_cotizadorpiwisuite_app-prod
+  # Pero usamos solo app-prod y Easypanel agrega el prefijo automáticamente
   app-prod:
     build:
       context: .

@@ -21,32 +21,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!hasValidSupabaseConfig) {
+    if (!hasValidSupabaseConfig()) {
+      console.warn('Supabase no está configurado correctamente');
       setLoading(false);
       return;
     }
 
-    const supabase = createSupabaseClient();
+    try {
+      const supabase = createSupabaseClient();
 
-    // Obtener sesión actual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      // Obtener sesión actual
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }).catch((error) => {
+        console.error('Error in getSession:', error);
+        setLoading(false);
+      });
+
+      // Escuchar cambios de autenticación
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
+
+      return () => subscription.unsubscribe();
+    } catch (error) {
+      console.error('Error initializing Supabase client:', error);
       setLoading(false);
-    });
-
-    // Escuchar cambios de autenticación
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!hasValidSupabaseConfig) {
+    if (!hasValidSupabaseConfig()) {
       throw new Error('Supabase no está configurado');
     }
 
@@ -64,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    if (!hasValidSupabaseConfig) {
+    if (!hasValidSupabaseConfig()) {
       throw new Error('Supabase no está configurado');
     }
 
@@ -82,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGithub = async () => {
-    if (!hasValidSupabaseConfig) {
+    if (!hasValidSupabaseConfig()) {
       throw new Error('Supabase no está configurado');
     }
 
@@ -100,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (!hasValidSupabaseConfig) {
+    if (!hasValidSupabaseConfig()) {
       return;
     }
 

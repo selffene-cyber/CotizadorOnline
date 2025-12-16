@@ -41,7 +41,7 @@ function toRow(settings: Partial<CompanySettings>): any {
 }
 
 export async function getCompanySettings(): Promise<CompanySettings | null> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return null;
   }
 
@@ -59,7 +59,7 @@ export async function getCompanySettings(): Promise<CompanySettings | null> {
 }
 
 export async function saveCompanySettings(settings: CompanySettings): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 

@@ -64,7 +64,7 @@ function toRow(quote: Partial<Quote>): any {
 
 // Función para obtener el siguiente número correlativo
 async function getNextQuoteNumber(): Promise<number> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return 1;
   }
 
@@ -83,7 +83,7 @@ async function getNextQuoteNumber(): Promise<number> {
 }
 
 export async function createQuote(quoteData: Omit<Quote, 'id'>): Promise<string> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -107,7 +107,7 @@ export async function createQuote(quoteData: Omit<Quote, 'id'>): Promise<string>
 }
 
 export async function getQuoteById(quoteId: string): Promise<Quote | null> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return null;
   }
 
@@ -125,7 +125,7 @@ export async function getQuoteById(quoteId: string): Promise<Quote | null> {
 }
 
 export async function getAllQuotes(): Promise<Quote[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -142,7 +142,7 @@ export async function getAllQuotes(): Promise<Quote[]> {
 }
 
 export async function getQuotesByStatus(status: QuoteStatus): Promise<Quote[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -160,7 +160,7 @@ export async function getQuotesByStatus(status: QuoteStatus): Promise<Quote[]> {
 }
 
 export async function getQuotesByClient(clientId: string): Promise<Quote[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -178,7 +178,7 @@ export async function getQuotesByClient(clientId: string): Promise<Quote[]> {
 }
 
 export async function getQuoteVersions(parentQuoteId: string): Promise<Quote[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -196,7 +196,7 @@ export async function getQuoteVersions(parentQuoteId: string): Promise<Quote[]> 
 }
 
 export async function updateQuote(quoteId: string, quoteData: Partial<Quote>): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -211,7 +211,7 @@ export async function updateQuote(quoteId: string, quoteData: Partial<Quote>): P
 }
 
 export async function deleteQuote(quoteId: string): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 

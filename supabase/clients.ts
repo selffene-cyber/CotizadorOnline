@@ -34,7 +34,7 @@ function toRow(client: Partial<Client>): any {
 }
 
 export async function createClient(clientData: Omit<Client, 'id'>): Promise<string> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -52,7 +52,7 @@ export async function createClient(clientData: Omit<Client, 'id'>): Promise<stri
 }
 
 export async function getClientById(clientId: string): Promise<Client | null> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return null;
   }
 
@@ -70,7 +70,7 @@ export async function getClientById(clientId: string): Promise<Client | null> {
 }
 
 export async function getAllClients(): Promise<Client[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -87,7 +87,7 @@ export async function getAllClients(): Promise<Client[]> {
 }
 
 export async function getClientByRUT(rut: string): Promise<Client | null> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return null;
   }
 
@@ -108,7 +108,7 @@ export async function getClientByRUT(rut: string): Promise<Client | null> {
 }
 
 export async function updateClient(clientId: string, clientData: Partial<Client>): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -123,7 +123,7 @@ export async function updateClient(clientId: string, clientData: Partial<Client>
 }
 
 export async function deleteClient(clientId: string): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 

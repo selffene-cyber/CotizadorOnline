@@ -4,7 +4,7 @@ import { supabase, hasValidSupabaseConfig } from './config';
 
 // Materiales
 export async function getMaterialsCatalog(): Promise<MaterialCatalogItem[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -28,7 +28,7 @@ export async function getMaterialsCatalog(): Promise<MaterialCatalogItem[]> {
 }
 
 export async function saveMaterialsCatalog(items: MaterialCatalogItem[]): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -55,7 +55,7 @@ export async function saveMaterialsCatalog(items: MaterialCatalogItem[]): Promis
 
 // Equipos
 export async function getEquipmentCatalog(): Promise<EquipmentCatalogItem[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -79,7 +79,7 @@ export async function getEquipmentCatalog(): Promise<EquipmentCatalogItem[]> {
 }
 
 export async function saveEquipmentCatalog(items: EquipmentCatalogItem[]): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 

@@ -49,7 +49,7 @@ function toRow(costing: Partial<Costing>): any {
 }
 
 export async function createCosting(costingData: Omit<Costing, 'id'>): Promise<string> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -67,7 +67,7 @@ export async function createCosting(costingData: Omit<Costing, 'id'>): Promise<s
 }
 
 export async function getCostingById(costingId: string): Promise<Costing | null> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return null;
   }
 
@@ -85,7 +85,7 @@ export async function getCostingById(costingId: string): Promise<Costing | null>
 }
 
 export async function getAllCostings(): Promise<Costing[]> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     return [];
   }
 
@@ -102,7 +102,7 @@ export async function getAllCostings(): Promise<Costing[]> {
 }
 
 export async function updateCosting(costingId: string, costingData: Partial<Costing>): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
@@ -117,7 +117,7 @@ export async function updateCosting(costingId: string, costingData: Partial<Cost
 }
 
 export async function deleteCosting(costingId: string): Promise<void> {
-  if (!hasValidSupabaseConfig) {
+  if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
