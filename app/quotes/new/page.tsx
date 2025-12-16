@@ -8,7 +8,7 @@ import WizardStep2Project from '@/components/quote/WizardStep2Project';
 import WizardStep3Details from '@/components/quote/WizardStep3Details';
 import { useQuote } from '@/hooks/useQuote';
 import { createQuote } from '@/firebase/quotes';
-import { Quote } from '@/types';
+import { Quote, ProjectType, Modality } from '@/types';
 
 export default function NewQuotePage() {
   const router = useRouter();
@@ -19,8 +19,8 @@ export default function NewQuotePage() {
     location: '',
     region: '',
     city: '',
-    type: 'Fabricación' as Quote['type'],
-    modality: 'Cerrado' as Quote['modality'],
+    type: 'Fabricación' as ProjectType,
+    modality: 'Cerrado' as Modality,
   });
   const [detailsData, setDetailsData] = useState({
     scope: '',
