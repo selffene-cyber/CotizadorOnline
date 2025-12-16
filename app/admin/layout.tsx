@@ -17,10 +17,18 @@ export default function AdminLayout({
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (!loading && user) {
-        const isAdmin = await isSuperAdmin(user.id);
-        if (!isAdmin) {
-          // Si no es admin, redirigir al dashboard
-          router.push('/dashboard');
+        try {
+          const isAdmin = await isSuperAdmin(user.id);
+          if (!isAdmin) {
+            console.warn('[AdminLayout] Usuario no es super admin, redirigiendo...');
+            // Esperar un poco antes de redirigir para evitar loops
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 500);
+          }
+        } catch (error) {
+          console.error('[AdminLayout] Error verificando admin:', error);
+          // En caso de error, no redirigir inmediatamente (podría ser un error temporal)
         }
       } else if (!loading && !user) {
         // Si no está autenticado, redirigir al login

@@ -30,8 +30,13 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
       .order('created_at', { ascending: false });
 
     if (error) {
+      // Si la tabla no existe, retornar array vacío en lugar de lanzar error
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+        console.warn('[getAllTenants] Tabla tenants no existe. Ejecuta el script schema-multi-tenant.sql en Supabase.');
+        return [];
+      }
       console.error('[getAllTenants] Error:', error);
-      throw error;
+      return [];
     }
 
     // Obtener información de miembros para cada tenant

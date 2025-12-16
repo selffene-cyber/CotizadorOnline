@@ -31,13 +31,19 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
       .single();
 
     if (error) {
-      console.error('[isSuperAdmin] Error:', error);
+      // Si la tabla no existe o hay un error de RLS, loguear pero no fallar
+      console.warn('[isSuperAdmin] Error verificando rol:', error.message || error);
+      // Si es un error de "no existe", retornar false pero no crashear
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+        console.warn('[isSuperAdmin] Tabla users no existe o no tiene acceso. Verifica que el script SQL se haya ejecutado.');
+        return false;
+      }
       return false;
     }
 
     return data?.role === 'admin';
-  } catch (error) {
-    console.error('[isSuperAdmin] Error:', error);
+  } catch (error: any) {
+    console.error('[isSuperAdmin] Error inesperado:', error);
     return false;
   }
 }
@@ -53,8 +59,13 @@ export async function getAccessRequests(): Promise<AccessRequest[]> {
       .order('requested_at', { ascending: false });
 
     if (error) {
+      // Si la tabla no existe, retornar array vacío
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+        console.warn('[getAccessRequests] Tabla access_requests no existe. Ejecuta el script schema-multi-tenant.sql en Supabase.');
+        return [];
+      }
       console.error('[getAccessRequests] Error:', error);
-      throw error;
+      return [];
     }
 
     return data || [];
@@ -207,17 +218,18 @@ export async function getSystemStats() {
   try {
     const [usersCount, tenantsCount, requestsCount] = await Promise.all([
       supabase.from('users').select('*', { count: 'exact', head: true }),
-      supabase.from('tenants').select('*', { count: 'exact', head: true }),
+      supabase.from('tenants').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 })),
       supabase
         .from('access_requests')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending'),
+        .eq('status', 'pending')
+        .catch(() => ({ count: 0 })),
     ]);
 
     return {
       totalUsers: usersCount.count || 0,
-      totalTenants: tenantsCount.count || 0,
-      pendingRequests: requestsCount.count || 0,
+      totalTenants: (tenantsCount as any).count || 0,
+      pendingRequests: (requestsCount as any).count || 0,
     };
   } catch (error) {
     console.error('[getSystemStats] Error:', error);
