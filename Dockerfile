@@ -46,5 +46,7 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+# Cargar variables de entorno desde .env si existe (para Easypanel)
+# Easypanel crea el archivo .env cuando "Crear archivo .env" está activado
+CMD sh -c 'if [ -f .env ]; then export $(cat .env | grep -v "^#" | xargs) && node server.js; else node server.js; fi'
 
