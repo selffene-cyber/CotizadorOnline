@@ -42,6 +42,17 @@ function getSupabaseConfig() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
   
+  // Log para debugging (solo en servidor)
+  if (typeof window === 'undefined') {
+    console.log('[Supabase Config] Variables cargadas:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseAnonKey,
+      urlLength: supabaseUrl.length,
+      keyLength: supabaseAnonKey.length,
+      urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NO URL',
+    });
+  }
+  
   return { supabaseUrl, supabaseAnonKey };
 }
 

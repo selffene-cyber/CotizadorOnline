@@ -15,6 +15,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Log para debugging (solo en servidor)
+  if (typeof window === 'undefined') {
+    console.log('[RootLayout] Renderizando layout en servidor');
+  }
+
   return (
     <html lang="es">
       <body className={inter.className}>
