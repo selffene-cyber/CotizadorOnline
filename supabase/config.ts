@@ -49,9 +49,31 @@ function getSupabaseConfig() {
     // Ignorar errores
   }
   
-  // Intentar obtener variables con NEXT_PUBLIC_ primero, luego sin el prefijo (para Easypanel)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  // En el cliente, intentar leer desde window.__ENV__ (inyectado por el servidor)
+  let supabaseUrl = '';
+  let supabaseAnonKey = '';
+  
+  if (typeof window !== 'undefined') {
+    // En el cliente, leer desde window.__ENV__ o process.env
+    // @ts-ignore
+    const windowEnv = (window as any).__ENV__ || {};
+    supabaseUrl = 
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 
+      windowEnv.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.SUPABASE_URL || 
+      windowEnv.SUPABASE_URL || 
+      '';
+    supabaseAnonKey = 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+      windowEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY || 
+      windowEnv.SUPABASE_ANON_KEY || 
+      '';
+  } else {
+    // En el servidor, leer desde process.env
+    supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  }
   
   // Log para debugging (solo en servidor)
   if (typeof window === 'undefined') {
