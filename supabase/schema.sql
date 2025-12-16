@@ -153,16 +153,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggers para actualizar updated_at
+-- Triggers para actualizar updated_at (eliminar si existen antes de crear)
+DROP TRIGGER IF EXISTS update_clients_updated_at ON public.clients;
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_quotes_updated_at ON public.quotes;
 CREATE TRIGGER update_quotes_updated_at BEFORE UPDATE ON public.quotes
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_costings_updated_at ON public.costings;
 CREATE TRIGGER update_costings_updated_at BEFORE UPDATE ON public.costings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -176,68 +180,89 @@ ALTER TABLE public.equipment_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
 
 -- Políticas: Usuarios autenticados pueden leer/escribir todo
+-- Eliminar políticas existentes antes de crear (para evitar errores de duplicado)
+DROP POLICY IF EXISTS "Users can read all clients" ON public.clients;
 CREATE POLICY "Users can read all clients" ON public.clients
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can insert clients" ON public.clients;
 CREATE POLICY "Users can insert clients" ON public.clients
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can update clients" ON public.clients;
 CREATE POLICY "Users can update clients" ON public.clients
   FOR UPDATE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can delete clients" ON public.clients;
 CREATE POLICY "Users can delete clients" ON public.clients
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Políticas para quotes
+DROP POLICY IF EXISTS "Users can read all quotes" ON public.quotes;
 CREATE POLICY "Users can read all quotes" ON public.quotes
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can insert quotes" ON public.quotes;
 CREATE POLICY "Users can insert quotes" ON public.quotes
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can update quotes" ON public.quotes;
 CREATE POLICY "Users can update quotes" ON public.quotes
   FOR UPDATE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can delete quotes" ON public.quotes;
 CREATE POLICY "Users can delete quotes" ON public.quotes
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Políticas para costings
+DROP POLICY IF EXISTS "Users can read all costings" ON public.costings;
 CREATE POLICY "Users can read all costings" ON public.costings
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can insert costings" ON public.costings;
 CREATE POLICY "Users can insert costings" ON public.costings
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can update costings" ON public.costings;
 CREATE POLICY "Users can update costings" ON public.costings
   FOR UPDATE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can delete costings" ON public.costings;
 CREATE POLICY "Users can delete costings" ON public.costings
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Políticas para catálogos (lectura pública, escritura autenticada)
+DROP POLICY IF EXISTS "Anyone can read catalogs" ON public.material_catalog;
 CREATE POLICY "Anyone can read catalogs" ON public.material_catalog
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can manage material catalog" ON public.material_catalog;
 CREATE POLICY "Users can manage material catalog" ON public.material_catalog
   FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Anyone can read equipment catalog" ON public.equipment_catalog;
 CREATE POLICY "Anyone can read equipment catalog" ON public.equipment_catalog
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Users can manage equipment catalog" ON public.equipment_catalog;
 CREATE POLICY "Users can manage equipment catalog" ON public.equipment_catalog
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- Políticas para users
+DROP POLICY IF EXISTS "Users can read all users" ON public.users;
 CREATE POLICY "Users can read all users" ON public.users
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users
   FOR UPDATE USING (auth.uid() = id);
 
 -- Políticas para company_settings
+DROP POLICY IF EXISTS "Users can read settings" ON public.company_settings;
 CREATE POLICY "Users can read settings" ON public.company_settings
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Admins can manage settings" ON public.company_settings;
 CREATE POLICY "Admins can manage settings" ON public.company_settings
   FOR ALL USING (
     EXISTS (
