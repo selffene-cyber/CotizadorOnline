@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.3",
     "docx": "^9.5.1",
+    "dotenv": "^17.2.3",
     "firebase": "^12.6.0",
     "next": "16.0.10",
     "react": "19.2.1",
