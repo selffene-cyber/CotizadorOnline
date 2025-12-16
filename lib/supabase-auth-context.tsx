@@ -21,40 +21,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!hasValidSupabaseConfig()) {
-      console.warn('Supabase no está configurado correctamente');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const supabase = createSupabaseClient();
-
-      // Obtener sesión actual
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        if (error) {
-          console.error('Error getting session:', error);
+    // Intentar inicializar Supabase de forma segura
+    let mounted = true;
+    
+    const initAuth = async () => {
+      try {
+        // Verificar configuración de forma segura
+        if (!hasValidSupabaseConfig()) {
+          console.warn('[AuthProvider] Supabase no está configurado correctamente');
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
         }
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }).catch((error) => {
-        console.error('Error in getSession:', error);
-        setLoading(false);
-      });
 
-      // Escuchar cambios de autenticación
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      });
+        const supabase = createSupabaseClient();
 
-      return () => subscription.unsubscribe();
-    } catch (error) {
-      console.error('Error initializing Supabase client:', error);
-      setLoading(false);
-    }
+        // Obtener sesión actual
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('[AuthProvider] Error getting session:', error);
+          }
+          if (mounted) {
+            setUser(session?.user ?? null);
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error('[AuthProvider] Error in getSession:', error);
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+
+        // Escuchar cambios de autenticación
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (mounted) {
+            setUser(session?.user ?? null);
+            setLoading(false);
+          }
+        });
+
+        return () => {
+          if (subscription) {
+            subscription.unsubscribe();
+          }
+        };
+      } catch (error) {
+        console.error('[AuthProvider] Error initializing Supabase client:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

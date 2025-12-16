@@ -30,13 +30,24 @@ function loadEnvFile() {
   }
 }
 
-// Cargar .env inmediatamente
-loadEnvFile();
+// Cargar .env inmediatamente (de forma segura)
+try {
+  loadEnvFile();
+} catch (error) {
+  // Ignorar errores al cargar .env en build time
+  if (typeof window === 'undefined') {
+    console.warn('[Supabase Config] No se pudo cargar .env en build time (esto es normal)');
+  }
+}
 
 // Función para obtener las variables de Supabase (se evalúa dinámicamente)
 function getSupabaseConfig() {
-  // Cargar .env nuevamente por si acaso (para runtime)
-  loadEnvFile();
+  try {
+    // Cargar .env nuevamente por si acaso (para runtime)
+    loadEnvFile();
+  } catch (error) {
+    // Ignorar errores
+  }
   
   // Intentar obtener variables con NEXT_PUBLIC_ primero, luego sin el prefijo (para Easypanel)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
@@ -44,13 +55,17 @@ function getSupabaseConfig() {
   
   // Log para debugging (solo en servidor)
   if (typeof window === 'undefined') {
-    console.log('[Supabase Config] Variables cargadas:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseAnonKey,
-      urlLength: supabaseUrl.length,
-      keyLength: supabaseAnonKey.length,
-      urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NO URL',
-    });
+    try {
+      console.log('[Supabase Config] Variables cargadas:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey,
+        urlLength: supabaseUrl.length,
+        keyLength: supabaseAnonKey.length,
+        urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NO URL',
+      });
+    } catch (error) {
+      // Ignorar errores de logging
+    }
   }
   
   return { supabaseUrl, supabaseAnonKey };

@@ -16,16 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // Log para debugging (solo en servidor)
-  if (typeof window === 'undefined') {
-    try {
-      console.log('[RootLayout] Renderizando layout en servidor');
-      // Verificar variables de entorno
-      const hasUrl = !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL);
-      const hasKey = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
-      console.log('[RootLayout] Variables de entorno:', { hasUrl, hasKey });
-    } catch (error) {
-      console.error('[RootLayout] Error verificando variables:', error);
-    }
+  try {
+    console.log('[RootLayout] Renderizando layout en servidor');
+    // Verificar variables de entorno
+    const hasUrl = !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL);
+    const hasKey = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+    console.log('[RootLayout] Variables de entorno:', { hasUrl, hasKey });
+  } catch (error) {
+    console.error('[RootLayout] Error verificando variables:', error);
   }
 
   return (
