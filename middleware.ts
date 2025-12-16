@@ -12,8 +12,29 @@ export function middleware(request: NextRequest) {
       url: request.url,
     });
 
-    // Permitir todas las peticiones por ahora
-    return NextResponse.next();
+    // Detectar tenant desde la URL
+    // Formato: /{slug}/... o /{slug}
+    const pathParts = pathname.split('/').filter(Boolean);
+    const possibleSlug = pathParts[0];
+
+    // Rutas que no son tenants
+    const nonTenantRoutes = ['login', 'admin', 'dashboard', 'invite', 'api', '_next', 'favicon.ico'];
+    
+    const response = NextResponse.next();
+
+    // Si hay un slug que no es una ruta especial, podría ser un tenant
+    if (possibleSlug && !nonTenantRoutes.includes(possibleSlug)) {
+      // Establecer cookie con el slug (el contexto del cliente lo usará para obtener el tenant)
+      response.cookies.set('tenant_slug', possibleSlug, {
+        path: '/',
+        maxAge: 60 * 60 * 24, // 24 horas
+      });
+    } else {
+      // Limpiar cookie si no hay tenant
+      response.cookies.delete('tenant_slug');
+    }
+
+    return response;
   } catch (error) {
     console.error('[Middleware] Error:', error);
     // En caso de error, permitir la petición de todas formas

@@ -1,111 +1,91 @@
-# 🔧 Solución: Errores en Panel de Administración
+# Solución para Error de Acceso al Panel Admin
 
-## ❌ Problema
+## Problema
 
-Al acceder a `/admin` aparecen errores:
-- `[getAllTenants] Error: {}`
-- `[isSuperAdmin] Error: {}`
-- El panel redirige inmediatamente al dashboard
+Al intentar acceder a `/admin`, aparece el error:
+- `[isSuperAdmin] Usuario no encontrado en public.users`
+- `[getAllTenants] Tabla tenants no existe`
 
-## 🔍 Causa
+## Causa
 
-Las tablas nuevas (`tenants`, `access_requests`, `memberships`) **no existen aún** en Supabase. Esto ocurre porque:
+El usuario existe en `auth.users` pero:
+1. **No existe el registro en `public.users`** (o el trigger no funcionó)
+2. **Falta la tabla `tenants`** (no se ejecutó `schema-multi-tenant.sql`)
 
-1. **No se ejecutó el script SQL** `schema-multi-tenant.sql` en Supabase
-2. El código intenta acceder a tablas que no existen
-3. `isSuperAdmin` falla y retorna `false`, causando la redirección
+## Solución Rápida
 
-## ✅ Solución
+### Paso 1: Crear/Actualizar Usuario en public.users
 
-### Paso 1: Ejecutar el Script SQL en Supabase
+Ejecuta este script en **Supabase SQL Editor**:
 
-1. Ve a [Supabase Dashboard](https://supabase.com/dashboard)
-2. Selecciona tu proyecto: **CotizadorPiwiSuite**
-3. Ve a **SQL Editor** (menú lateral izquierdo)
-4. Abre el archivo `supabase/schema-multi-tenant.sql` en tu editor
-5. **Copia TODO el contenido** del archivo
-6. Pégalo en el SQL Editor de Supabase
-7. Haz clic en **Run** o presiona `Ctrl+Enter`
-8. **Verifica que no haya errores** (debería mostrar "Success")
+**Archivo: `supabase/fix-user-admin.sql`**
 
-### Paso 2: Verificar que el Usuario sea Admin
+Este script:
+- ✅ Busca el usuario en `auth.users`
+- ✅ Crea/actualiza el registro en `public.users` con `role = 'admin'`
+- ✅ Verifica que todo esté correcto
 
-1. En Supabase, ve a **SQL Editor**
-2. Ejecuta este query para verificar tu usuario:
+### Paso 2: Crear Tablas Multi-Tenant (si no existen)
 
-```sql
-SELECT id, email, role, created_at
-FROM public.users
-WHERE email = 'piwisuite@gmail.com';
-```
+Si el error persiste con `tenants`, ejecuta:
 
-3. Deberías ver `role = 'admin'`
-4. Si no es `admin`, ejecuta:
+**Archivo: `supabase/schema-multi-tenant.sql`**
 
-```sql
-UPDATE public.users
-SET role = 'admin'
-WHERE email = 'piwisuite@gmail.com';
-```
+Este script crea:
+- Tabla `tenants`
+- Tabla `memberships`
+- Tabla `invitations`
+- Tabla `access_requests`
+- Políticas RLS necesarias
 
-### Paso 3: Verificar que las Tablas Existan
+## Verificación
 
-Ejecuta este query en Supabase SQL Editor:
+Después de ejecutar los scripts, verifica con:
 
 ```sql
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name IN ('tenants', 'memberships', 'access_requests', 'invitations');
+-- Verificar usuario
+SELECT id, email, role 
+FROM public.users 
+WHERE email = 'jeans.selfene@outlook.com';
+-- Deberías ver: role = 'admin'
+
+-- Verificar tabla tenants
+SELECT COUNT(*) FROM public.tenants;
+-- Debería devolver 0 (tabla vacía pero existe)
 ```
 
-Deberías ver las 4 tablas listadas.
+## Solución Manual (Alternativa)
 
-### Paso 4: Reiniciar el Servidor Local
+Si prefieres hacerlo manualmente:
 
-1. Detén el servidor (`Ctrl+C`)
-2. Reinicia: `npm run dev`
-3. Accede a `http://localhost:3000/admin`
+```sql
+-- 1. Obtener el ID del usuario
+SELECT id, email FROM auth.users WHERE email = 'jeans.selfene@outlook.com';
 
-## 🎯 Resultado Esperado
+-- 2. Crear/actualizar en public.users (reemplaza USER_ID con el ID de arriba)
+INSERT INTO public.users (id, email, display_name, role)
+VALUES (
+  'USER_ID_AQUI',  -- Reemplaza con el ID real
+  'jeans.selfene@outlook.com',
+  'jeans.selfene@outlook.com',
+  'admin'
+)
+ON CONFLICT (id) DO UPDATE
+SET role = 'admin', updated_at = NOW();
+```
 
-Después de ejecutar el script SQL:
-- ✅ No deberían aparecer errores en la consola
-- ✅ El panel de administración debería cargar correctamente
-- ✅ Deberías poder ver las pestañas: Resumen, Empresas, Solicitudes, Usuarios
-- ✅ No debería redirigir al dashboard
+## Próximos Pasos
 
-## 🐛 Si Aún Hay Problemas
+1. Ejecuta `supabase/fix-user-admin.sql`
+2. Si falta la tabla `tenants`, ejecuta `supabase/schema-multi-tenant.sql`
+3. Cierra sesión y vuelve a iniciar sesión
+4. Intenta acceder a `/admin` nuevamente
 
-### Error: "relation does not exist"
+## Nota sobre el Trigger
 
-**Causa**: El script SQL no se ejecutó correctamente.
+El trigger `handle_new_user` debería crear automáticamente el registro en `public.users` cuando se crea un usuario en `auth.users`. Si no funcionó, puede ser porque:
+- El trigger no está activo
+- El usuario se creó antes de que existiera el trigger
+- Hubo un error al ejecutar el trigger
 
-**Solución**:
-1. Verifica que ejecutaste TODO el contenido de `schema-multi-tenant.sql`
-2. Verifica que no haya errores en el SQL Editor
-3. Revisa los logs de Supabase para ver si hay errores
-
-### Error: "permission denied"
-
-**Causa**: Las políticas RLS están bloqueando el acceso.
-
-**Solución**:
-1. Verifica que el usuario tenga `role = 'admin'` en `public.users`
-2. Verifica que las políticas RLS estén correctas (deberían estar en el script SQL)
-
-### El panel sigue redirigiendo
-
-**Causa**: El usuario no tiene el rol `admin`.
-
-**Solución**:
-1. Verifica el rol del usuario (ver Paso 2)
-2. Si no es admin, actualízalo con el SQL del Paso 2
-3. Reinicia el servidor local
-
-## 📝 Notas
-
-- El código ahora es más robusto y no crasheará si las tablas no existen
-- Retornará arrays vacíos en lugar de lanzar errores
-- Los mensajes de error son más informativos
-
+El script `fix-user-admin.sql` corrige esto creando/actualizando el registro manualmente.

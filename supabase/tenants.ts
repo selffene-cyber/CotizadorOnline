@@ -1,5 +1,10 @@
 // Funciones para gestión de tenants (empresas)
-import { supabase } from './config';
+import { supabase, createSupabaseClient } from './config';
+
+// Helper para obtener el cliente correcto (navegador o servidor)
+function getSupabaseClient() {
+  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
+}
 
 export interface Tenant {
   id: string;
@@ -24,7 +29,8 @@ export interface TenantWithMembers extends Tenant {
  */
 export async function getAllTenants(): Promise<TenantWithMembers[]> {
   try {
-    const { data: tenants, error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { data: tenants, error } = await supabaseClient
       .from('tenants')
       .select('*')
       .order('created_at', { ascending: false });
@@ -58,8 +64,9 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
         let owner = null;
 
         try {
+          const supabaseClient = getSupabaseClient();
           // Contar miembros
-          const { count, error: countError } = await supabase
+          const { count, error: countError } = await supabaseClient
             .from('memberships')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenant.id);
@@ -69,7 +76,7 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
           }
 
           // Obtener owner
-          const { data: ownerMembership, error: ownerError } = await supabase
+          const { data: ownerMembership, error: ownerError } = await supabaseClient
             .from('memberships')
             .select('user_id')
             .eq('tenant_id', tenant.id)
@@ -78,7 +85,7 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
             .single();
 
           if (!ownerError && ownerMembership) {
-            const { data: ownerUser } = await supabase
+            const { data: ownerUser } = await supabaseClient
               .from('users')
               .select('id, email, display_name')
               .eq('id', ownerMembership.user_id)
@@ -111,7 +118,8 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
  */
 export async function getTenantById(tenantId: string): Promise<Tenant | null> {
   try {
-    const { data, error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
       .from('tenants')
       .select('*')
       .eq('id', tenantId)
@@ -138,8 +146,9 @@ export async function createTenant(
   createdBy: string
 ): Promise<Tenant> {
   try {
+    const supabaseClient = getSupabaseClient();
     // Verificar que el slug no exista
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseClient
       .from('tenants')
       .select('id')
       .eq('slug', slug)
@@ -149,7 +158,7 @@ export async function createTenant(
       throw new Error('El slug ya existe. Elige otro.');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('tenants')
       .insert({
         name,
@@ -179,9 +188,10 @@ export async function updateTenant(
   updates: { name?: string; slug?: string }
 ): Promise<void> {
   try {
+    const supabaseClient = getSupabaseClient();
     // Si se actualiza el slug, verificar que no exista
     if (updates.slug) {
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseClient
         .from('tenants')
         .select('id')
         .eq('slug', updates.slug)
@@ -193,7 +203,7 @@ export async function updateTenant(
       }
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('tenants')
       .update(updates)
       .eq('id', tenantId);
@@ -213,8 +223,9 @@ export async function updateTenant(
  */
 export async function deleteTenant(tenantId: string): Promise<void> {
   try {
+    const supabaseClient = getSupabaseClient();
     // Eliminar tenant (esto debería cascadear a memberships, clients, quotes, etc.)
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('tenants')
       .delete()
       .eq('id', tenantId);
@@ -234,7 +245,8 @@ export async function deleteTenant(tenantId: string): Promise<void> {
  */
 export async function getTenantMembers(tenantId: string) {
   try {
-    const { data, error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
       .from('memberships')
       .select(`
         *,
@@ -264,7 +276,8 @@ export async function addUserToTenant(
   role: 'owner' | 'admin' | 'user'
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { error } = await supabaseClient
       .from('memberships')
       .insert({
         tenant_id: tenantId,
@@ -291,7 +304,8 @@ export async function updateUserRoleInTenant(
   newRole: 'owner' | 'admin' | 'user'
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { error } = await supabaseClient
       .from('memberships')
       .update({ role: newRole })
       .eq('tenant_id', tenantId)
@@ -315,7 +329,8 @@ export async function removeUserFromTenant(
   userId: string
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { error } = await supabaseClient
       .from('memberships')
       .delete()
       .eq('tenant_id', tenantId)

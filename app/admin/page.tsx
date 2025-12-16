@@ -26,6 +26,12 @@ import {
   removeUserFromTenant,
   type TenantWithMembers,
 } from '@/supabase/tenants';
+import {
+  createInvitation,
+  getTenantInvitations,
+  cancelInvitation,
+  type Invitation,
+} from '@/supabase/invitations';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -47,6 +53,14 @@ export default function AdminPage() {
   const [newTenantSlug, setNewTenantSlug] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
   const [tenantMembers, setTenantMembers] = useState<any[]>([]);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [selectedUserForMember, setSelectedUserForMember] = useState<string>('');
+  const [selectedMemberRole, setSelectedMemberRole] = useState<'owner' | 'admin' | 'user'>('user');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'owner' | 'admin' | 'user'>('user');
+  const [tenantInvitations, setTenantInvitations] = useState<Invitation[]>([]);
 
   useEffect(() => {
     loadData();
@@ -106,11 +120,110 @@ export default function AdminPage() {
 
   const handleViewTenantMembers = async (tenantId: string) => {
     try {
-      const members = await getTenantMembers(tenantId);
+      const [members, invitations] = await Promise.all([
+        getTenantMembers(tenantId),
+        getTenantInvitations(tenantId),
+      ]);
       setTenantMembers(members);
+      setTenantInvitations(invitations);
       setSelectedTenant(tenantId);
+      setShowMembersModal(true);
     } catch (error) {
       console.error('Error loading tenant members:', error);
+      alert('Error al cargar los miembros');
+    }
+  };
+
+  const handleSendInvitation = async () => {
+    if (!selectedTenant || !inviteEmail || !user) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      await createInvitation(selectedTenant, inviteEmail, inviteRole, user.id);
+      // Recargar invitaciones
+      const invitations = await getTenantInvitations(selectedTenant);
+      setTenantInvitations(invitations);
+      setInviteEmail('');
+      setInviteRole('user');
+      setShowInviteModal(false);
+      alert('Invitación enviada exitosamente');
+    } catch (error: any) {
+      console.error('Error sending invitation:', error);
+      alert(error.message || 'Error al enviar la invitación');
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    if (!confirm('¿Estás seguro de que quieres cancelar esta invitación?')) {
+      return;
+    }
+
+    try {
+      await cancelInvitation(invitationId);
+      if (selectedTenant) {
+        const invitations = await getTenantInvitations(selectedTenant);
+        setTenantInvitations(invitations);
+      }
+    } catch (error: any) {
+      console.error('Error canceling invitation:', error);
+      alert(error.message || 'Error al cancelar la invitación');
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedTenant || !selectedUserForMember || !user) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      await addUserToTenant(selectedTenant, selectedUserForMember, selectedMemberRole);
+      // Recargar miembros
+      const members = await getTenantMembers(selectedTenant);
+      setTenantMembers(members);
+      setSelectedUserForMember('');
+      setSelectedMemberRole('user');
+      setShowAddMember(false);
+      await loadData(); // Recargar datos generales
+    } catch (error: any) {
+      console.error('Error adding member:', error);
+      alert(error.message || 'Error al agregar el miembro');
+    }
+  };
+
+  const handleUpdateMemberRole = async (userId: string, newRole: 'owner' | 'admin' | 'user') => {
+    if (!selectedTenant) return;
+
+    try {
+      await updateUserRoleInTenant(selectedTenant, userId, newRole);
+      // Recargar miembros
+      const members = await getTenantMembers(selectedTenant);
+      setTenantMembers(members);
+      await loadData();
+    } catch (error: any) {
+      console.error('Error updating member role:', error);
+      alert(error.message || 'Error al actualizar el rol');
+    }
+  };
+
+  const handleRemoveMember = async (userId: string, userEmail: string) => {
+    if (!selectedTenant) return;
+
+    if (!confirm(`¿Estás seguro de que quieres remover a ${userEmail} de esta empresa?`)) {
+      return;
+    }
+
+    try {
+      await removeUserFromTenant(selectedTenant, userId);
+      // Recargar miembros
+      const members = await getTenantMembers(selectedTenant);
+      setTenantMembers(members);
+      await loadData();
+    } catch (error: any) {
+      console.error('Error removing member:', error);
+      alert(error.message || 'Error al remover el miembro');
     }
   };
 
@@ -326,6 +439,220 @@ export default function AdminPage() {
               <div className="flex justify-end space-x-2">
                 <Button onClick={() => setShowCreateTenant(false)}>Cancelar</Button>
                 <Button onClick={handleCreateTenant}>Crear</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Gestión de Miembros */}
+      {showMembersModal && selectedTenant && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Gestión de Miembros</h3>
+              <button
+                onClick={() => {
+                  setShowMembersModal(false);
+                  setSelectedTenant(null);
+                  setTenantMembers([]);
+                  setShowAddMember(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Lista de miembros actuales */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-md font-medium">Miembros Actuales</h4>
+                <Button onClick={() => setShowAddMember(true)} className="bg-green-600 hover:bg-green-700">
+                  + Agregar Miembro
+                </Button>
+              </div>
+              {tenantMembers.length === 0 ? (
+                <p className="text-gray-500 text-sm">No hay miembros en esta empresa</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {tenantMembers.map((member: any) => (
+                        <tr key={member.id}>
+                          <td className="px-4 py-2 text-sm text-gray-900">
+                            {member.user?.email || member.user_id}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-500">
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleUpdateMemberRole(member.user_id, e.target.value as 'owner' | 'admin' | 'user')}
+                              className="border border-gray-300 rounded px-2 py-1 text-sm"
+                            >
+                              <option value="user">Usuario</option>
+                              <option value="admin">Admin</option>
+                              <option value="owner">Owner</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm">
+                            <Button
+                              onClick={() => handleRemoveMember(member.user_id, member.user?.email || member.user_id)}
+                              className="bg-red-600 hover:bg-red-700 text-xs"
+                            >
+                              Remover
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Formulario para agregar miembro */}
+            {showAddMember && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-md font-medium mb-4">Agregar Nuevo Miembro</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Usuario
+                    </label>
+                    <select
+                      value={selectedUserForMember}
+                      onChange={(e) => setSelectedUserForMember(e.target.value)}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    >
+                      <option value="">Selecciona un usuario</option>
+                      {users
+                        .filter((u) => !tenantMembers.some((m: any) => m.user_id === u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.email} {u.role === 'admin' ? '(Admin)' : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rol
+                    </label>
+                    <select
+                      value={selectedMemberRole}
+                      onChange={(e) => setSelectedMemberRole(e.target.value as 'owner' | 'admin' | 'user')}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    >
+                      <option value="user">Usuario</option>
+                      <option value="admin">Admin</option>
+                      <option value="owner">Owner</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button onClick={() => setShowAddMember(false)}>Cancelar</Button>
+                    <Button onClick={handleAddMember} className="bg-green-600 hover:bg-green-700">
+                      Agregar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sección de Invitaciones */}
+            <div className="border-t pt-4 mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-md font-medium">Invitaciones Pendientes</h4>
+                <Button onClick={() => setShowInviteModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                  + Enviar Invitación
+                </Button>
+              </div>
+              {tenantInvitations.filter((inv) => inv.status === 'pending').length === 0 ? (
+                <p className="text-gray-500 text-sm">No hay invitaciones pendientes</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expira</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {tenantInvitations
+                        .filter((inv) => inv.status === 'pending')
+                        .map((inv) => (
+                          <tr key={inv.id}>
+                            <td className="px-4 py-2 text-sm text-gray-900">{inv.email}</td>
+                            <td className="px-4 py-2 text-sm text-gray-500">{inv.role}</td>
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {new Date(inv.expires_at).toLocaleDateString('es-CL')}
+                            </td>
+                            <td className="px-4 py-2 text-right text-sm">
+                              <Button
+                                onClick={() => handleCancelInvitation(inv.id)}
+                                className="bg-red-600 hover:bg-red-700 text-xs"
+                              >
+                                Cancelar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Enviar Invitación */}
+      {showInviteModal && selectedTenant && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium mb-4">Enviar Invitación</h3>
+            <div className="space-y-4">
+              <Input
+                label="Email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="usuario@ejemplo.com"
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rol
+                </label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as 'owner' | 'admin' | 'user')}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                >
+                  <option value="user">Usuario</option>
+                  <option value="admin">Admin</option>
+                  <option value="owner">Owner</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteEmail('');
+                  setInviteRole('user');
+                }}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSendInvitation} className="bg-blue-600 hover:bg-blue-700">
+                  Enviar Invitación
+                </Button>
               </div>
             </div>
           </div>

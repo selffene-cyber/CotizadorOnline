@@ -1,6 +1,11 @@
 // Helpers para manejo de Clientes con Supabase
 import { Client } from '@/types';
-import { supabase, hasValidSupabaseConfig } from './config';
+import { supabase, hasValidSupabaseConfig, createSupabaseClient } from './config';
+
+// Helper para obtener el cliente correcto
+function getSupabaseClient() {
+  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
+}
 
 // Función auxiliar para convertir de snake_case a camelCase
 function toClient(row: any): Client {
@@ -33,14 +38,25 @@ function toRow(client: Partial<Client>): any {
   return row;
 }
 
-export async function createClient(clientData: Omit<Client, 'id'>): Promise<string> {
+export async function createClient(
+  clientData: Omit<Client, 'id'>,
+  tenantId?: string
+): Promise<string> {
   if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  const rowData = toRow(clientData);
+  
+  // Agregar tenant_id si se proporciona
+  if (tenantId) {
+    rowData.tenant_id = tenantId;
+  }
+
+  const { data, error } = await supabaseClient
     .from('clients')
-    .insert(toRow(clientData))
+    .insert(rowData)
     .select('id')
     .single();
 
@@ -69,15 +85,22 @@ export async function getClientById(clientId: string): Promise<Client | null> {
   return toClient(data);
 }
 
-export async function getAllClients(): Promise<Client[]> {
+export async function getAllClients(tenantId?: string): Promise<Client[]> {
   if (!hasValidSupabaseConfig()) {
     return [];
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  let query = supabaseClient
     .from('clients')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('*');
+
+  // Filtrar por tenant_id si se proporciona
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error || !data) {
     return [];
