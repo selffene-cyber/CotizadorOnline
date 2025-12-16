@@ -8,8 +8,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    # Nota: Easypanel maneja el mapeo de puertos automáticamente
+    # El puerto se configura en el panel de Easypanel (normalmente 3000)
+    # No es necesario especificar 'ports' aquí para evitar conflictos
     # Nota: Easypanel inyecta las variables de entorno directamente
     # Las variables se configuran en el panel de Easypanel
     restart: unless-stopped
