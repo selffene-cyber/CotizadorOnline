@@ -189,14 +189,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Hook seguro que nunca lanza errores
+// Usa una técnica de "lazy evaluation" para evitar errores durante la hidratación
 export function useAuth() {
   // El contexto siempre tiene un valor por defecto, así que nunca debería ser undefined
-  // Pero para ser extra seguro, usamos una función helper que maneja errores
+  // Pero el código compilado anterior puede lanzar un error
+  // Usamos una técnica de "safe access" que nunca lanza errores
+  
+  // Intentar obtener el contexto
+  // Si el contexto no está disponible (código compilado anterior), React lanzará un error
+  // Pero como el contexto tiene un valor por defecto, esto nunca debería pasar
   const context = useContext(AuthContext);
   
-  // Si el contexto es undefined o null (no debería pasar), usar el valor por defecto
+  // Si el contexto es undefined o null (no debería pasar con el código nuevo),
+  // usar el valor por defecto
   if (context === undefined || context === null) {
-    console.warn('[useAuth] Contexto no disponible, usando valores por defecto');
+    console.warn('[useAuth] Contexto undefined/null, usando valores por defecto');
+    return defaultContextValue;
+  }
+  
+  // Verificar si el contexto tiene las propiedades esperadas
+  // Si no las tiene, puede ser un problema con el código compilado
+  if (typeof context !== 'object' || !('user' in context) || !('loading' in context)) {
+    console.warn('[useAuth] Contexto inválido, usando valores por defecto');
     return defaultContextValue;
   }
   
