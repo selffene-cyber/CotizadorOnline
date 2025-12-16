@@ -65,18 +65,32 @@ export function hasValidSupabaseConfig() {
 // Cliente para uso en el servidor (Server Components, API Routes)
 // Usar valores dummy si no hay configuración para evitar errores en build
 export const supabase = (() => {
-  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
-  if (supabaseUrl && supabaseAnonKey) {
-    return createClient(supabaseUrl, supabaseAnonKey);
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    if (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co') {
+      return createClient(supabaseUrl, supabaseAnonKey);
+    }
+    // Retornar cliente dummy que no fallará
+    return createClient('https://placeholder.supabase.co', 'placeholder-key');
+  } catch (error) {
+    console.error('[Supabase] Error creando cliente servidor:', error);
+    // Retornar cliente dummy en caso de error
+    return createClient('https://placeholder.supabase.co', 'placeholder-key');
   }
-  return createClient('https://placeholder.supabase.co', 'placeholder-key');
 })();
 
 // Cliente para uso en el navegador (Client Components)
 export function createSupabaseClient() {
-  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
-  if (supabaseUrl && supabaseAnonKey) {
-    return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    if (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co') {
+      return createBrowserClient(supabaseUrl, supabaseAnonKey);
+    }
+    // Retornar cliente dummy que no fallará
+    return createBrowserClient('https://placeholder.supabase.co', 'placeholder-key');
+  } catch (error) {
+    console.error('[Supabase] Error creando cliente navegador:', error);
+    // Retornar cliente dummy en caso de error
+    return createBrowserClient('https://placeholder.supabase.co', 'placeholder-key');
   }
-  return createBrowserClient('https://placeholder.supabase.co', 'placeholder-key');
 }
