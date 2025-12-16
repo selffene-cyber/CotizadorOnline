@@ -24,6 +24,7 @@ const defaultContextValue: AuthContextType = {
   signInWithGithub: async () => { throw new Error('AuthProvider no está inicializado'); },
 };
 
+// Crear el contexto con el valor por defecto para que siempre esté disponible
 const AuthContext = createContext<AuthContextType>(defaultContextValue);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -189,24 +190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  // Intentar obtener el contexto de forma segura
-  let context: AuthContextType;
-  try {
-    context = useContext(AuthContext);
-    // Si el contexto es undefined (código compilado anterior), usar el valor por defecto
-    if (context === undefined || !context) {
-      console.warn('[useAuth] Contexto no disponible, usando valores por defecto');
-      return defaultContextValue;
-    }
-    return context;
-  } catch (error: any) {
-    // Si hay cualquier error (incluyendo el error del código compilado anterior), retornar el valor por defecto
-    if (error?.message?.includes('useAuth must be used within an AuthProvider')) {
-      console.warn('[useAuth] Error de contexto capturado, usando valores por defecto');
-      return defaultContextValue;
-    }
-    console.warn('[useAuth] Error obteniendo contexto, usando valores por defecto:', error);
+  // El contexto siempre tiene un valor por defecto, así que nunca debería ser undefined
+  // Pero para ser extra seguro, usamos una función helper que maneja errores
+  const context = useContext(AuthContext);
+  
+  // Si el contexto es undefined o null (no debería pasar), usar el valor por defecto
+  if (context === undefined || context === null) {
+    console.warn('[useAuth] Contexto no disponible, usando valores por defecto');
     return defaultContextValue;
   }
+  
+  return context;
 }
 
