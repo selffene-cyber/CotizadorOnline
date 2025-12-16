@@ -189,8 +189,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  // El contexto siempre tiene un valor por defecto, así que no necesitamos verificar undefined
-  return context;
+  // Intentar obtener el contexto de forma segura
+  let context: AuthContextType;
+  try {
+    context = useContext(AuthContext);
+    // Si el contexto es undefined (código compilado anterior), usar el valor por defecto
+    if (context === undefined || !context) {
+      console.warn('[useAuth] Contexto no disponible, usando valores por defecto');
+      return defaultContextValue;
+    }
+    return context;
+  } catch (error: any) {
+    // Si hay cualquier error (incluyendo el error del código compilado anterior), retornar el valor por defecto
+    if (error?.message?.includes('useAuth must be used within an AuthProvider')) {
+      console.warn('[useAuth] Error de contexto capturado, usando valores por defecto');
+      return defaultContextValue;
+    }
+    console.warn('[useAuth] Error obteniendo contexto, usando valores por defecto:', error);
+    return defaultContextValue;
+  }
 }
 

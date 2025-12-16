@@ -19,6 +19,9 @@ COPY . .
 # Variables de entorno necesarias en build time
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Limpiar caché de Next.js antes del build para forzar un build limpio
+RUN rm -rf .next
+
 # Build de la aplicación
 RUN npm run build
 
