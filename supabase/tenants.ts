@@ -40,7 +40,9 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
         console.warn('[getAllTenants] Error de permisos. Verifica las políticas RLS en Supabase.');
         return [];
       }
-      console.error('[getAllTenants] Error:', error.message || error.code || error);
+      // Log del error de forma más segura
+      const errorMessage = error?.message || error?.code || JSON.stringify(error) || 'Error desconocido';
+      console.error('[getAllTenants] Error:', errorMessage);
       return [];
     }
 
@@ -52,35 +54,46 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
     // Obtener información de miembros para cada tenant
     const tenantsWithMembers = await Promise.all(
       (tenants || []).map(async (tenant) => {
-        // Contar miembros
-        const { count } = await supabase
-          .from('memberships')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', tenant.id);
-
-        // Obtener owner
-        const { data: ownerMembership } = await supabase
-          .from('memberships')
-          .select('user_id')
-          .eq('tenant_id', tenant.id)
-          .eq('role', 'owner')
-          .limit(1)
-          .single();
-
+        let memberCount = 0;
         let owner = null;
-        if (ownerMembership) {
-          const { data: ownerUser } = await supabase
-            .from('users')
-            .select('id, email, display_name')
-            .eq('id', ownerMembership.user_id)
+
+        try {
+          // Contar miembros
+          const { count, error: countError } = await supabase
+            .from('memberships')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tenant.id);
+
+          if (!countError) {
+            memberCount = count || 0;
+          }
+
+          // Obtener owner
+          const { data: ownerMembership, error: ownerError } = await supabase
+            .from('memberships')
+            .select('user_id')
+            .eq('tenant_id', tenant.id)
+            .eq('role', 'owner')
+            .limit(1)
             .single();
 
-          owner = ownerUser;
+          if (!ownerError && ownerMembership) {
+            const { data: ownerUser } = await supabase
+              .from('users')
+              .select('id, email, display_name')
+              .eq('id', ownerMembership.user_id)
+              .single();
+
+            owner = ownerUser || null;
+          }
+        } catch (error) {
+          // Si hay error obteniendo miembros, continuar sin esa información
+          console.warn(`[getAllTenants] Error obteniendo miembros para tenant ${tenant.id}:`, error);
         }
 
         return {
           ...tenant,
-          member_count: count || 0,
+          member_count: memberCount,
           owner: owner || undefined,
         } as TenantWithMembers;
       })
