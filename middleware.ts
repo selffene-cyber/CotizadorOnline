@@ -2,18 +2,23 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Las rutas públicas que no requieren autenticación
-  const publicPaths = ['/login'];
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
+    
+    // Log para debugging
+    console.log('[Middleware] Petición recibida:', {
+      pathname,
+      method: request.method,
+      url: request.url,
+    });
 
-  // Si es una ruta pública, permitir acceso
-  if (publicPaths.includes(pathname)) {
+    // Permitir todas las peticiones por ahora
+    return NextResponse.next();
+  } catch (error) {
+    console.error('[Middleware] Error:', error);
+    // En caso de error, permitir la petición de todas formas
     return NextResponse.next();
   }
-
-  // Para rutas protegidas, el cliente manejará la redirección
-  // Firebase Auth requiere verificación del lado del cliente
-  return NextResponse.next();
 }
 
 export const config = {
