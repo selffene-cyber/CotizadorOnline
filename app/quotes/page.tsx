@@ -52,12 +52,12 @@ export default function QuotesPage() {
               updatedQuote.costingReferences && updatedQuote.costingReferences.length > 0) {
             try {
               const { getCostingById } = await import('@/firebase/costings');
-              const firstCosting = await getCostingById(updatedQuote.costingReferences[0]);
+              const firstCosting = await getCostingById(updatedQuote.costingReferences?.[0] || '');
               if (firstCosting && (firstCosting.utilityPercentage !== undefined && firstCosting.utilityPercentage !== null)) {
                 updatedQuote = { ...updatedQuote, utilityPercentage: firstCosting.utilityPercentage };
               }
             } catch (err) {
-              console.error(`Error obteniendo utilityPercentage del costeo ${updatedQuote.costingReferences[0]}:`, err);
+              console.error(`Error obteniendo utilityPercentage del costeo ${updatedQuote.costingReferences?.[0] || 'unknown'}:`, err);
             }
           }
           
