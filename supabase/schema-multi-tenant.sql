@@ -127,8 +127,12 @@ ALTER TABLE public.access_requests ENABLE ROW LEVEL SECURITY;
 -- POLÍTICAS RLS PARA TENANTS
 -- ============================================
 
--- Usuarios solo pueden ver tenants donde tienen membership
+-- Eliminar políticas existentes antes de crear
 DROP POLICY IF EXISTS "Users can view their tenants" ON public.tenants;
+DROP POLICY IF EXISTS "Owners can create tenants" ON public.tenants;
+DROP POLICY IF EXISTS "Owners can update their tenants" ON public.tenants;
+
+-- Usuarios solo pueden ver tenants donde tienen membership
 CREATE POLICY "Users can view their tenants" ON public.tenants
   FOR SELECT USING (
     EXISTS (
@@ -139,7 +143,6 @@ CREATE POLICY "Users can view their tenants" ON public.tenants
   );
 
 -- Solo owners pueden crear tenants (o super admin)
-DROP POLICY IF EXISTS "Owners can create tenants" ON public.tenants;
 CREATE POLICY "Owners can create tenants" ON public.tenants
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -149,7 +152,6 @@ CREATE POLICY "Owners can create tenants" ON public.tenants
   );
 
 -- Solo owners pueden actualizar sus tenants
-DROP POLICY IF EXISTS "Owners can update their tenants" ON public.tenants;
 CREATE POLICY "Owners can update their tenants" ON public.tenants
   FOR UPDATE USING (
     EXISTS (
@@ -164,8 +166,13 @@ CREATE POLICY "Owners can update their tenants" ON public.tenants
 -- POLÍTICAS RLS PARA MEMBERSHIPS
 -- ============================================
 
--- Usuarios pueden ver memberships de sus tenants
+-- Eliminar políticas existentes antes de crear
 DROP POLICY IF EXISTS "Users can view memberships of their tenants" ON public.memberships;
+DROP POLICY IF EXISTS "Admins can create memberships" ON public.memberships;
+DROP POLICY IF EXISTS "Admins can update memberships" ON public.memberships;
+DROP POLICY IF EXISTS "Admins can delete memberships" ON public.memberships;
+
+-- Usuarios pueden ver memberships de sus tenants
 CREATE POLICY "Users can view memberships of their tenants" ON public.memberships
   FOR SELECT USING (
     EXISTS (
@@ -176,7 +183,6 @@ CREATE POLICY "Users can view memberships of their tenants" ON public.membership
   );
 
 -- Solo owners/admins pueden crear memberships
-DROP POLICY IF EXISTS "Admins can create memberships" ON public.memberships;
 CREATE POLICY "Admins can create memberships" ON public.memberships
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -188,7 +194,6 @@ CREATE POLICY "Admins can create memberships" ON public.memberships
   );
 
 -- Solo owners/admins pueden actualizar memberships
-DROP POLICY IF EXISTS "Admins can update memberships" ON public.memberships;
 CREATE POLICY "Admins can update memberships" ON public.memberships
   FOR UPDATE USING (
     EXISTS (
@@ -200,7 +205,6 @@ CREATE POLICY "Admins can update memberships" ON public.memberships
   );
 
 -- Solo owners/admins pueden eliminar memberships
-DROP POLICY IF EXISTS "Admins can delete memberships" ON public.memberships;
 CREATE POLICY "Admins can delete memberships" ON public.memberships
   FOR DELETE USING (
     EXISTS (
@@ -215,8 +219,11 @@ CREATE POLICY "Admins can delete memberships" ON public.memberships
 -- POLÍTICAS RLS PARA INVITATIONS
 -- ============================================
 
--- Usuarios pueden ver invitaciones de sus tenants
+-- Eliminar políticas existentes antes de crear
 DROP POLICY IF EXISTS "Users can view invitations of their tenants" ON public.invitations;
+DROP POLICY IF EXISTS "Admins can manage invitations" ON public.invitations;
+
+-- Usuarios pueden ver invitaciones de sus tenants
 CREATE POLICY "Users can view invitations of their tenants" ON public.invitations
   FOR SELECT USING (
     EXISTS (
@@ -227,7 +234,6 @@ CREATE POLICY "Users can view invitations of their tenants" ON public.invitation
   );
 
 -- Solo admins pueden gestionar invitaciones
-DROP POLICY IF EXISTS "Admins can manage invitations" ON public.invitations;
 CREATE POLICY "Admins can manage invitations" ON public.invitations
   FOR ALL USING (
     EXISTS (
@@ -242,8 +248,12 @@ CREATE POLICY "Admins can manage invitations" ON public.invitations
 -- POLÍTICAS RLS PARA ACCESS_REQUESTS
 -- ============================================
 
--- Super admin puede ver todas las solicitudes
+-- Eliminar políticas existentes antes de crear
 DROP POLICY IF EXISTS "Super admin can view all access requests" ON public.access_requests;
+DROP POLICY IF EXISTS "Super admin can manage access requests" ON public.access_requests;
+DROP POLICY IF EXISTS "Users can view own access requests" ON public.access_requests;
+
+-- Super admin puede ver todas las solicitudes
 CREATE POLICY "Super admin can view all access requests" ON public.access_requests
   FOR SELECT USING (
     EXISTS (
@@ -253,7 +263,6 @@ CREATE POLICY "Super admin can view all access requests" ON public.access_reques
   );
 
 -- Super admin puede gestionar solicitudes
-DROP POLICY IF EXISTS "Super admin can manage access requests" ON public.access_requests;
 CREATE POLICY "Super admin can manage access requests" ON public.access_requests
   FOR ALL USING (
     EXISTS (
@@ -263,7 +272,6 @@ CREATE POLICY "Super admin can manage access requests" ON public.access_requests
   );
 
 -- Usuarios pueden ver sus propias solicitudes
-DROP POLICY IF EXISTS "Users can view own access requests" ON public.access_requests;
 CREATE POLICY "Users can view own access requests" ON public.access_requests
   FOR SELECT USING (user_id = auth.uid());
 
@@ -272,7 +280,16 @@ CREATE POLICY "Users can view own access requests" ON public.access_requests
 -- ============================================
 
 -- Actualizar políticas de clients para incluir tenant_id
+-- Eliminar políticas existentes antes de crear
 DROP POLICY IF EXISTS "Users can read all clients" ON public.clients;
+DROP POLICY IF EXISTS "Users can read clients of their tenants" ON public.clients;
+DROP POLICY IF EXISTS "Users can insert clients" ON public.clients;
+DROP POLICY IF EXISTS "Users can insert clients in their tenants" ON public.clients;
+DROP POLICY IF EXISTS "Users can update clients" ON public.clients;
+DROP POLICY IF EXISTS "Users can update clients of their tenants" ON public.clients;
+DROP POLICY IF EXISTS "Users can delete clients" ON public.clients;
+DROP POLICY IF EXISTS "Users can delete clients of their tenants" ON public.clients;
+
 CREATE POLICY "Users can read clients of their tenants" ON public.clients
   FOR SELECT USING (
     EXISTS (
@@ -282,7 +299,6 @@ CREATE POLICY "Users can read clients of their tenants" ON public.clients
     )
   );
 
-DROP POLICY IF EXISTS "Users can insert clients" ON public.clients;
 CREATE POLICY "Users can insert clients in their tenants" ON public.clients
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -292,7 +308,6 @@ CREATE POLICY "Users can insert clients in their tenants" ON public.clients
     )
   );
 
-DROP POLICY IF EXISTS "Users can update clients" ON public.clients;
 CREATE POLICY "Users can update clients of their tenants" ON public.clients
   FOR UPDATE USING (
     EXISTS (
@@ -302,7 +317,6 @@ CREATE POLICY "Users can update clients of their tenants" ON public.clients
     )
   );
 
-DROP POLICY IF EXISTS "Users can delete clients" ON public.clients;
 CREATE POLICY "Users can delete clients of their tenants" ON public.clients
   FOR DELETE USING (
     EXISTS (

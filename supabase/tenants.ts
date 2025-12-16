@@ -31,11 +31,21 @@ export async function getAllTenants(): Promise<TenantWithMembers[]> {
 
     if (error) {
       // Si la tabla no existe, retornar array vacío en lugar de lanzar error
-      if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.code === '42P01') {
         console.warn('[getAllTenants] Tabla tenants no existe. Ejecuta el script schema-multi-tenant.sql en Supabase.');
         return [];
       }
-      console.error('[getAllTenants] Error:', error);
+      // Si es un error de permisos RLS, también retornar array vacío
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy')) {
+        console.warn('[getAllTenants] Error de permisos. Verifica las políticas RLS en Supabase.');
+        return [];
+      }
+      console.error('[getAllTenants] Error:', error.message || error.code || error);
+      return [];
+    }
+
+    // Si no hay tenants, retornar array vacío
+    if (!tenants || tenants.length === 0) {
       return [];
     }
 

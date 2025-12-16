@@ -216,20 +216,40 @@ export async function deleteUser(userId: string): Promise<void> {
  */
 export async function getSystemStats() {
   try {
-    const [usersCount, tenantsCount, requestsCount] = await Promise.all([
-      supabase.from('users').select('*', { count: 'exact', head: true }),
-      supabase.from('tenants').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 })),
-      supabase
+    // Obtener conteo de usuarios
+    const { count: usersCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    // Obtener conteo de tenants (puede fallar si la tabla no existe)
+    let tenantsCount = 0;
+    try {
+      const { count } = await supabase
+        .from('tenants')
+        .select('*', { count: 'exact', head: true });
+      tenantsCount = count || 0;
+    } catch (error) {
+      console.warn('[getSystemStats] Error obteniendo tenants:', error);
+      tenantsCount = 0;
+    }
+
+    // Obtener conteo de solicitudes pendientes (puede fallar si la tabla no existe)
+    let pendingRequests = 0;
+    try {
+      const { count } = await supabase
         .from('access_requests')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-        .catch(() => ({ count: 0 })),
-    ]);
+        .eq('status', 'pending');
+      pendingRequests = count || 0;
+    } catch (error) {
+      console.warn('[getSystemStats] Error obteniendo solicitudes:', error);
+      pendingRequests = 0;
+    }
 
     return {
-      totalUsers: usersCount.count || 0,
-      totalTenants: (tenantsCount as any).count || 0,
-      pendingRequests: (requestsCount as any).count || 0,
+      totalUsers: usersCount || 0,
+      totalTenants: tenantsCount,
+      pendingRequests: pendingRequests,
     };
   } catch (error) {
     console.error('[getSystemStats] Error:', error);
