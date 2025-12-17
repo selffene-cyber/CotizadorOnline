@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
     const possibleSlug = pathParts[0];
 
     // Rutas que no son tenants
-    const nonTenantRoutes = ['login', 'admin', 'dashboard', 'invite', 'api', '_next', 'favicon.ico'];
+    const nonTenantRoutes = ['login', 'admin', 'dashboard', 'invite', 'api', '_next', 'favicon.ico', 'auth', 'onboarding'];
     
     const response = NextResponse.next();
 

@@ -1,5 +1,6 @@
 // Funciones para gestión de invitaciones
 import { supabase, createSupabaseClient } from './config';
+import { sendInvitationEmail } from './email';
 
 export interface Invitation {
   id: string;
@@ -56,6 +57,32 @@ export async function createInvitation(
     if (error) {
       console.error('[createInvitation] Error:', error);
       throw error;
+    }
+
+    // Obtener información del tenant y del invitador para el email
+    try {
+      // Obtener nombre del tenant
+      const { data: tenantData } = await supabaseClient
+        .from('tenants')
+        .select('name')
+        .eq('id', tenantId)
+        .single();
+
+      // Obtener nombre del invitador
+      const { data: inviterData } = await supabaseClient
+        .from('users')
+        .select('display_name, email')
+        .eq('id', invitedBy)
+        .maybeSingle();
+
+      const tenantName = tenantData?.name || 'la empresa';
+      const inviterName = inviterData?.display_name || inviterData?.email || 'un administrador';
+
+      // Enviar email de invitación (no bloquea si falla)
+      await sendInvitationEmail(email, token, tenantName, role, inviterName);
+    } catch (emailError) {
+      console.warn('[createInvitation] Error enviando email (continuando):', emailError);
+      // No lanzar error, la invitación ya se creó
     }
 
     return data;

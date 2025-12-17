@@ -1,30 +1,37 @@
 -- Script para migrar datos existentes a un tenant por defecto
--- Ejecutar este script en Supabase SQL Editor DESPUÉS de crear el tenant por defecto
+-- Ejecutar este script en Supabase SQL Editor
 --
--- IMPORTANTE: Este script asume que:
--- 1. Ya existe un tenant por defecto (creado desde el panel admin o manualmente)
--- 2. Los datos existentes no tienen tenant_id asignado (son NULL)
+-- IMPORTANTE: Este script:
+-- 1. Busca un tenant existente (por nombre "Empresa Principal" o slug "default")
+-- 2. Si no existe, crea uno automáticamente
+-- 3. Migra todos los datos existentes (sin tenant_id) a ese tenant
 --
 -- INSTRUCCIONES:
--- 1. Crea un tenant por defecto desde el panel admin o manualmente
--- 2. Obtén el ID del tenant por defecto
--- 3. Reemplaza 'TENANT_ID_AQUI' con el ID real del tenant
--- 4. Ejecuta este script
+-- 1. Ejecuta este script directamente en Supabase SQL Editor
+-- 2. El script creará un tenant por defecto si no existe
+-- 3. Todos los datos se migrarán automáticamente
 
 -- ============================================
 -- CONFIGURACIÓN
 -- ============================================
 
--- Reemplaza esto con el ID del tenant por defecto
+-- Este script:
+-- 1. Busca un tenant existente
+-- 2. Si no existe, crea uno por defecto automáticamente
+-- 3. Migra todos los datos a ese tenant
+
 DO $$
 DECLARE
   default_tenant_id UUID;
+  default_tenant_slug TEXT := 'default';
+  default_tenant_name TEXT := 'Empresa Principal';
+  admin_user_id UUID;
 BEGIN
   -- Buscar el tenant por defecto (puedes cambiar el nombre o slug)
-  -- Opción 1: Por nombre
+  -- Opción 1: Por nombre o slug
   SELECT id INTO default_tenant_id
   FROM public.tenants
-  WHERE name = 'Empresa Principal' OR slug = 'default'
+  WHERE name = default_tenant_name OR slug = default_tenant_slug
   LIMIT 1;
 
   -- Si no existe, usar el primer tenant
@@ -35,11 +42,43 @@ BEGIN
     LIMIT 1;
   END IF;
 
+  -- Si aún no existe, crear uno automáticamente
   IF default_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'No se encontró ningún tenant. Crea uno primero desde el panel admin.';
-  END IF;
+    RAISE NOTICE 'No se encontró ningún tenant. Creando tenant por defecto...';
+    
+    -- Buscar un usuario admin para asignarlo como creador
+    SELECT id INTO admin_user_id
+    FROM public.users
+    WHERE role = 'admin'
+    ORDER BY created_at ASC
+    LIMIT 1;
 
-  RAISE NOTICE 'Usando tenant por defecto con ID: %', default_tenant_id;
+    -- Si no hay admin, usar el primer usuario
+    IF admin_user_id IS NULL THEN
+      SELECT id INTO admin_user_id
+      FROM public.users
+      ORDER BY created_at ASC
+      LIMIT 1;
+    END IF;
+
+    -- Crear el tenant por defecto
+    INSERT INTO public.tenants (name, slug, created_by)
+    VALUES (default_tenant_name, default_tenant_slug, admin_user_id)
+    RETURNING id INTO default_tenant_id;
+
+    RAISE NOTICE '✓ Tenant por defecto creado con ID: %', default_tenant_id;
+
+    -- Si hay un usuario admin, agregarlo como owner del tenant
+    IF admin_user_id IS NOT NULL THEN
+      INSERT INTO public.memberships (tenant_id, user_id, role)
+      VALUES (default_tenant_id, admin_user_id, 'owner')
+      ON CONFLICT (tenant_id, user_id) DO NOTHING;
+      
+      RAISE NOTICE '✓ Usuario admin agregado como owner del tenant';
+    END IF;
+  ELSE
+    RAISE NOTICE 'Usando tenant existente con ID: %', default_tenant_id;
+  END IF;
 
   -- ============================================
   -- MIGRAR DATOS

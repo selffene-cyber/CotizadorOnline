@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGithub: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 // Crear un contexto con valores por defecto para evitar errores durante la hidratación
@@ -22,6 +23,7 @@ const defaultContextValue: AuthContextType = {
   signUp: async () => { throw new Error('AuthProvider no está inicializado'); },
   signOut: async () => {},
   signInWithGithub: async () => { throw new Error('AuthProvider no está inicializado'); },
+  signInWithGoogle: async () => { throw new Error('AuthProvider no está inicializado'); },
 };
 
 // Crear el contexto con el valor por defecto para que siempre esté disponible
@@ -162,6 +164,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    if (!hasValidSupabaseConfig()) {
+      throw new Error('Supabase no está configurado');
+    }
+
+    if (typeof window === 'undefined') {
+      throw new Error('signInWithGoogle solo puede ser llamado en el cliente');
+    }
+
+    const supabase = createSupabaseClient();
+    
+    console.log('[signInWithGoogle] Iniciando OAuth con Google, redirectTo:', `${window.location.origin}/auth/callback`);
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      console.error('[signInWithGoogle] Error:', error);
+      throw new Error(error.message);
+    }
+
+    // La redirección se manejará automáticamente por Supabase
+    // No necesitamos hacer nada más aquí
+    console.log('[signInWithGoogle] OAuth iniciado correctamente, redirigiendo...');
+  };
+
   const signOut = async () => {
     if (!hasValidSupabaseConfig()) {
       return;
@@ -180,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     signInWithGithub,
+    signInWithGoogle,
   };
 
   return (

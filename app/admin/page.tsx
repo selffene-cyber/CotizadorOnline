@@ -75,6 +75,12 @@ export default function AdminPage() {
         getAllTenants(),
         getSystemStats(),
       ]);
+      console.log('[AdminPage] Datos cargados:', {
+        users: usersData.length,
+        requests: requestsData.length,
+        tenants: tenantsData.length,
+        stats: statsData,
+      });
       setUsers(usersData);
       setRequests(requestsData);
       setTenants(tenantsData);

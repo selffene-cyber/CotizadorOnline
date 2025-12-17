@@ -18,20 +18,33 @@ export default function AdminLayout({
     const checkAdminAccess = async () => {
       if (!loading && user) {
         try {
+          console.log('[AdminLayout] Verificando acceso admin para usuario:', user.id);
           const isAdmin = await isSuperAdmin(user.id);
+          console.log('[AdminLayout] Resultado de isSuperAdmin:', isAdmin);
           if (!isAdmin) {
             console.warn('[AdminLayout] Usuario no es super admin, redirigiendo...');
             // Esperar un poco antes de redirigir para evitar loops
             setTimeout(() => {
               router.push('/dashboard');
             }, 500);
+            return;
           }
-        } catch (error) {
-          console.error('[AdminLayout] Error verificando admin:', error);
+          console.log('[AdminLayout] Acceso admin confirmado');
+        } catch (error: any) {
+          console.error('[AdminLayout] Error verificando admin:', {
+            message: error?.message || 'Error desconocido',
+            code: error?.code,
+            details: error?.details,
+            hint: error?.hint,
+            error: error,
+          });
           // En caso de error, no redirigir inmediatamente (podría ser un error temporal)
+          // Pero mostrar un mensaje de advertencia
+          console.warn('[AdminLayout] Error al verificar admin, permitiendo acceso temporalmente');
         }
       } else if (!loading && !user) {
         // Si no está autenticado, redirigir al login
+        console.log('[AdminLayout] Usuario no autenticado, redirigiendo a login');
         router.push('/login');
       }
     };

@@ -158,7 +158,8 @@ export async function createTenant(
       throw new Error('El slug ya existe. Elige otro.');
     }
 
-    const { data, error } = await supabaseClient
+    // Crear el tenant
+    const { data: tenant, error: tenantError } = await supabaseClient
       .from('tenants')
       .insert({
         name,
@@ -168,12 +169,28 @@ export async function createTenant(
       .select()
       .single();
 
-    if (error) {
-      console.error('[createTenant] Error:', error);
-      throw error;
+    if (tenantError) {
+      console.error('[createTenant] Error creando tenant:', tenantError);
+      throw tenantError;
     }
 
-    return data;
+    // Crear automáticamente el membership del creador como 'owner'
+    const { error: membershipError } = await supabaseClient
+      .from('memberships')
+      .insert({
+        tenant_id: tenant.id,
+        user_id: createdBy,
+        role: 'owner',
+      });
+
+    if (membershipError) {
+      console.error('[createTenant] Error creando membership:', membershipError);
+      // No lanzar error aquí, solo loguear, porque el tenant ya se creó
+      // El usuario puede agregar el membership manualmente después
+      console.warn('[createTenant] El tenant se creó pero no se pudo crear el membership automáticamente');
+    }
+
+    return tenant;
   } catch (error) {
     console.error('[createTenant] Error:', error);
     throw error;
@@ -246,23 +263,80 @@ export async function deleteTenant(tenantId: string): Promise<void> {
 export async function getTenantMembers(tenantId: string) {
   try {
     const supabaseClient = getSupabaseClient();
-    const { data, error } = await supabaseClient
+    
+    // Primero obtener los memberships
+    const { data: memberships, error: membershipsError } = await supabaseClient
       .from('memberships')
-      .select(`
-        *,
-        user:users(id, email, display_name, role)
-      `)
+      .select('*')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('[getTenantMembers] Error:', error);
-      throw error;
+    if (membershipsError) {
+      console.error('[getTenantMembers] Error obteniendo memberships:', {
+        code: membershipsError.code,
+        message: membershipsError.message,
+        details: membershipsError.details,
+        hint: membershipsError.hint,
+      });
+      // Si es un error de permisos o tabla no encontrada, retornar array vacío
+      if (membershipsError.code === 'PGRST116' || membershipsError.code === '42P01' || membershipsError.code === '42501') {
+        console.warn('[getTenantMembers] Error de permisos o tabla no encontrada, retornando array vacío');
+        return [];
+      }
+      throw membershipsError;
     }
 
-    return data || [];
-  } catch (error) {
-    console.error('[getTenantMembers] Error:', error);
+    if (!memberships || memberships.length === 0) {
+      return [];
+    }
+
+    // Obtener los IDs de usuarios únicos
+    const userIds = [...new Set(memberships.map(m => m.user_id))];
+
+    // Obtener información de usuarios
+    const { data: users, error: usersError } = await supabaseClient
+      .from('users')
+      .select('id, email, display_name, role')
+      .in('id', userIds);
+
+    if (usersError) {
+      console.error('[getTenantMembers] Error obteniendo usuarios:', {
+        code: usersError.code,
+        message: usersError.message,
+        details: usersError.details,
+        hint: usersError.hint,
+      });
+      // Si hay error obteniendo usuarios, retornar memberships sin info de usuario
+      return memberships.map(m => ({
+        ...m,
+        user: null,
+      }));
+    }
+
+    // Combinar memberships con información de usuarios
+    const membersWithUsers = memberships.map(membership => {
+      const user = users?.find(u => u.id === membership.user_id) || null;
+      return {
+        ...membership,
+        user: user ? {
+          id: user.id,
+          email: user.email,
+          display_name: user.display_name,
+          role: user.role,
+        } : null,
+      };
+    });
+
+    return membersWithUsers;
+  } catch (error: any) {
+    console.error('[getTenantMembers] Error inesperado:', {
+      message: error?.message || 'Error desconocido',
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      error: error,
+    });
+    // Retornar array vacío en caso de error para no romper la UI
     return [];
   }
 }
