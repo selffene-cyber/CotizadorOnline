@@ -49,10 +49,40 @@ export async function createClient(
   const supabaseClient = getSupabaseClient();
   const rowData = toRow(clientData);
   
-  // Agregar tenant_id si se proporciona
-  if (tenantId) {
-    rowData.tenant_id = tenantId;
+  // Obtener el usuario actual
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  
+  if (userError || !user) {
+    throw new Error('Usuario no autenticado. Debes iniciar sesión para crear clientes.');
   }
+
+  // Agregar created_by
+  rowData.created_by = user.id;
+
+  // Obtener tenant_id si no se proporciona
+  let finalTenantId = tenantId;
+  
+  if (!finalTenantId) {
+    // Buscar el tenant_id del usuario desde memberships
+    const { data: memberships, error: membershipError } = await supabaseClient
+      .from('memberships')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (membershipError || !memberships || memberships.length === 0) {
+      throw new Error('No se encontró un tenant asociado. Asegúrate de estar asociado a una empresa.');
+    }
+
+    finalTenantId = memberships[0].tenant_id;
+  }
+
+  if (!finalTenantId) {
+    throw new Error('No se pudo determinar el tenant_id. Proporciona un tenant_id o asegúrate de estar asociado a una empresa.');
+  }
+
+  // Agregar tenant_id
+  rowData.tenant_id = finalTenantId;
 
   const { data, error } = await supabaseClient
     .from('clients')
@@ -67,18 +97,48 @@ export async function createClient(
   return data.id;
 }
 
-export async function getClientById(clientId: string): Promise<Client | null> {
+export async function getClientById(clientId: string, tenantId?: string): Promise<Client | null> {
   if (!hasValidSupabaseConfig()) {
     return null;
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  let query = supabaseClient
     .from('clients')
     .select('*')
-    .eq('id', clientId)
-    .single();
+    .eq('id', clientId);
 
-  if (error || !data) {
+  // Filtrar por tenant_id si se proporciona
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  } else {
+    // Si no se proporciona tenant_id, obtenerlo automáticamente
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (!userError && user) {
+      const { data: memberships } = await supabaseClient
+        .from('memberships')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (memberships && memberships.length > 0) {
+        query = query.eq('tenant_id', memberships[0].tenant_id);
+      }
+    }
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    // Si es un error 406 (Not Acceptable), probablemente es un problema de RLS
+    if (error.code === 'PGRST301' || error.message?.includes('Not Acceptable')) {
+      console.warn('[getClientById] Error 406 - Posible problema de RLS. Verifica que tengas acceso al tenant del cliente.');
+    }
+    return null;
+  }
+
+  if (!data) {
     return null;
   }
 
@@ -109,21 +169,56 @@ export async function getAllClients(tenantId?: string): Promise<Client[]> {
   return data.map(toClient);
 }
 
-export async function getClientByRUT(rut: string): Promise<Client | null> {
+export async function getClientByRUT(rut: string, tenantId?: string): Promise<Client | null> {
   if (!hasValidSupabaseConfig()) {
     return null;
   }
 
+  const supabaseClient = getSupabaseClient();
+  
   // Normalizar RUT (remover puntos y guiones)
   const normalizedRut = rut.replace(/[.\-]/g, '');
 
-  const { data, error } = await supabase
+  let finalTenantId = tenantId;
+
+  // Si no se proporciona tenant_id, obtenerlo automáticamente
+  if (!finalTenantId) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (!userError && user) {
+      const { data: memberships } = await supabaseClient
+        .from('memberships')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (memberships && memberships.length > 0) {
+        finalTenantId = memberships[0].tenant_id;
+      }
+    }
+  }
+
+  let query = supabaseClient
     .from('clients')
     .select('*')
-    .eq('rut', normalizedRut)
-    .single();
+    .eq('rut', normalizedRut);
 
-  if (error || !data) {
+  // Filtrar por tenant_id si está disponible
+  if (finalTenantId) {
+    query = query.eq('tenant_id', finalTenantId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    // Si es un error 406 (Not Acceptable), probablemente es un problema de RLS
+    if (error.code === 'PGRST301' || error.message?.includes('Not Acceptable')) {
+      console.warn('[getClientByRUT] Error 406 - Posible problema de RLS. Verifica que tengas un tenant asociado.');
+    }
+    return null;
+  }
+
+  if (!data) {
     return null;
   }
 

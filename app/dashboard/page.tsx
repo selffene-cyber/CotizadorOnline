@@ -7,8 +7,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
 import { Quote } from '@/types';
-import { getAllQuotes } from '@/firebase/quotes';
-import { getClientById } from '@/firebase/clients';
+import { getAllQuotes } from '@/supabase/quotes';
+import { getClientById } from '@/supabase/clients';
 import { 
   PlusIcon, 
   DocumentTextIcon, 
@@ -68,7 +68,7 @@ export default function DashboardPage() {
               
               // Si hay costeos asociados, sumar sus totales
               if (updatedQuote.costingReferences && updatedQuote.costingReferences.length > 0) {
-                const { getCostingById } = await import('@/firebase/costings');
+                const { getCostingById } = await import('@/supabase/costings');
                 for (const costingId of updatedQuote.costingReferences) {
                   try {
                     const costing = await getCostingById(costingId);
@@ -201,55 +201,59 @@ export default function DashboardPage() {
         </div>
 
         {/* Métricas - Cards mejoradas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Cotizaciones</p>
-                <p className="text-3xl font-bold text-gray-900">{quotes.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+          {/* Card Valor Total - Más grande (2 columnas) */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow md:col-span-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-600 mb-2">Valor Total</p>
+                <p className="font-bold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis" style={{ fontSize: 'clamp(1.1rem, 3vw, 1.75rem)' }}>{formatCurrency(totalValue)}</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <DocumentTextIcon className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Valor Total</p>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalValue)}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
+              <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
                 <CurrencyDollarIcon className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Margen Promedio</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold text-gray-900">{avgMargin.toFixed(1)}%</p>
-                        <ArrowTrendingUpIcon className="w-5 h-5 text-green-500" />
+          {/* Card Total Cotizaciones - Más pequeña */}
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex flex-col items-start gap-2">
+              <div className="flex items-center justify-between w-full">
+                <p className="text-xs font-medium text-gray-600">Total Cotizaciones</p>
+                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                  <DocumentTextIcon className="w-4 h-4 text-blue-600" />
                 </div>
               </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <ChartBarIcon className="w-6 h-6 text-purple-600" />
+              <p className="text-xl font-bold text-gray-900">{quotes.length}</p>
+            </div>
+          </div>
+
+          {/* Card Margen Promedio - Más pequeña */}
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex flex-col items-start gap-2">
+              <div className="flex items-center justify-between w-full">
+                <p className="text-xs font-medium text-gray-600">Margen Promedio</p>
+                <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                  <ChartBarIcon className="w-4 h-4 text-purple-600" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-xl font-bold text-gray-900">{avgMargin.toFixed(1)}%</p>
+                <ArrowTrendingUpIcon className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Este Mes</p>
-                <p className="text-3xl font-bold text-gray-900">{thisMonth}</p>
+          {/* Card Este Mes - Más pequeña */}
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex flex-col items-start gap-2">
+              <div className="flex items-center justify-between w-full">
+                <p className="text-xs font-medium text-gray-600">Este Mes</p>
+                <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                  <CalendarIcon className="w-4 h-4 text-orange-600" />
+                </div>
               </div>
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <CalendarIcon className="w-6 h-6 text-orange-600" />
-              </div>
+              <p className="text-xl font-bold text-gray-900">{thisMonth}</p>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
 // Vista de detalle de cotización
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getQuoteById, updateQuote, duplicateQuote, deleteQuote } from '@/firebase/quotes';
+import { getQuoteById, updateQuote, duplicateQuote, deleteQuote } from '@/supabase/quotes';
 import { getClientById } from '@/firebase/clients';
 import { Quote, Client, ProjectType, Modality, Costing, QuoteTotals } from '@/types';
 import Button from '@/components/ui/Button';
@@ -73,7 +73,7 @@ export default function QuoteDetailPage() {
         
         // Si hay costeos asociados en costingReferences, sumar sus totales
         if (quoteData.costingReferences && quoteData.costingReferences.length > 0) {
-          const { getCostingById } = await import('@/firebase/costings');
+              const { getCostingById } = await import('@/supabase/costings');
           for (const costingId of quoteData.costingReferences) {
             try {
               const costing = await getCostingById(costingId);
@@ -138,7 +138,7 @@ export default function QuoteDetailPage() {
         if ((quoteData.utilityPercentage === undefined || quoteData.utilityPercentage === null || quoteData.utilityPercentage === 0) 
             && quoteData.costingReferences && quoteData.costingReferences.length > 0) {
           try {
-            const { getCostingById } = await import('@/firebase/costings');
+              const { getCostingById } = await import('@/supabase/costings');
             // Tomar el primer costeo para obtener su utilityPercentage
             const firstCosting = await getCostingById(quoteData.costingReferences[0]);
             if (firstCosting && firstCosting.utilityPercentage) {

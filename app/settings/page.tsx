@@ -6,7 +6,7 @@ import { CompanySettings } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
-import { getCompanySettings, saveCompanySettings } from '@/firebase/settings';
+import { getCompanySettings, saveCompanySettings } from '@/supabase/settings';
 import { formatRUT, validateRUT } from '@/utils/validations/rut';
 import { chileRegions } from '@/utils/chile-regions';
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';

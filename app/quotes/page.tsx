@@ -2,15 +2,15 @@
 
 // Página de todas las cotizaciones
 import { useEffect, useState } from 'react';
-import { getAllQuotes } from '@/firebase/quotes';
+import { getAllQuotes, deleteQuote } from '@/supabase/quotes';
 import { Quote } from '@/types';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
 import { formatRUT } from '@/utils/validations/rut';
-import { getClientById } from '@/firebase/clients';
-import { PlusIcon, DocumentTextIcon, MagnifyingGlassIcon, XMarkIcon, CheckCircleIcon, PaperAirplaneIcon, XCircleIcon, ChartBarIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { getClientById } from '@/supabase/clients';
+import { PlusIcon, DocumentTextIcon, MagnifyingGlassIcon, XMarkIcon, CheckCircleIcon, PaperAirplaneIcon, XCircleIcon, ChartBarIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Input from '@/components/ui/Input';
 import ResponsiveTable, { TableColumn } from '@/components/ui/ResponsiveTable';
 
@@ -51,7 +51,7 @@ export default function QuotesPage() {
           if ((updatedQuote.utilityPercentage === undefined || updatedQuote.utilityPercentage === null) &&
               updatedQuote.costingReferences && updatedQuote.costingReferences.length > 0) {
             try {
-              const { getCostingById } = await import('@/firebase/costings');
+              const { getCostingById } = await import('@/supabase/costings');
               const firstCosting = await getCostingById(updatedQuote.costingReferences?.[0] || '');
               if (firstCosting && (firstCosting.utilityPercentage !== undefined && firstCosting.utilityPercentage !== null)) {
                 updatedQuote = { ...updatedQuote, utilityPercentage: firstCosting.utilityPercentage };
@@ -77,7 +77,7 @@ export default function QuotesPage() {
             
             // Si hay costeos asociados, sumar sus totales
             if (updatedQuote.costingReferences && updatedQuote.costingReferences.length > 0) {
-              const { getCostingById } = await import('@/firebase/costings');
+              const { getCostingById } = await import('@/supabase/costings');
               for (const costingId of updatedQuote.costingReferences) {
                 try {
                   const costing = await getCostingById(costingId);
@@ -518,6 +518,27 @@ export default function QuotesPage() {
                   <PencilIcon className="w-5 h-5" />
                 </Link>
               )}
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!confirm('¿Está seguro de eliminar esta cotización?')) {
+                    return;
+                  }
+                  try {
+                    if (quote.id) {
+                      await deleteQuote(quote.id);
+                      await loadQuotes(); // Recargar la lista
+                    }
+                  } catch (error) {
+                    console.error('Error eliminando cotización:', error);
+                    alert('Error al eliminar la cotización');
+                  }
+                }}
+                className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                title="Eliminar"
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
             </>
           )}
           className="animate-fade-in"

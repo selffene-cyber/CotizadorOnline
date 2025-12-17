@@ -3,9 +3,9 @@
 // Página de visualización de costeo
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getCostingById, deleteCosting } from '@/firebase/costings';
-import { getCompanySettings } from '@/firebase/settings';
-import { getClientById } from '@/firebase/clients';
+import { getCostingById, deleteCosting } from '@/supabase/costings';
+import { getCompanySettings } from '@/supabase/settings';
+import { getClientById } from '@/supabase/clients';
 import { Costing, CompanySettings, Client } from '@/types';
 import { generateCostingFileName } from '@/utils/exporters/costing-pdf';
 import Button from '@/components/ui/Button';

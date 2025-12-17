@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { Client } from '@/types';
 import { validateRUT, formatRUT } from '@/utils/validations/rut';
-import { getClientByRUT, createClient, getAllClients } from '@/firebase/clients';
+import { getClientByRUT, createClient, getAllClients } from '@/supabase/clients';
 import { chileRegions, getCitiesByRegion } from '@/utils/chile-regions';
 
 interface WizardStep1ClientProps {
@@ -108,7 +108,7 @@ export default function WizardStep1Client({ clientId, onNext }: WizardStep1Clien
 
     setLoading(true);
     try {
-      const clientId = await createClient({
+      const newClientId = await createClient({
         ...formData,
         rut: formData.rut.replace(/[.\-]/g, ''), // Guardar sin formato
       });
@@ -117,6 +117,7 @@ export default function WizardStep1Client({ clientId, onNext }: WizardStep1Clien
       if (newClient) {
         setSelectedClient(newClient);
         setShowNewForm(false);
+        setErrors({});
         // Si tiene región, configurarla
         if (newClient.region) {
           const region = chileRegions.find(r => r.name === newClient.region);
@@ -124,6 +125,15 @@ export default function WizardStep1Client({ clientId, onNext }: WizardStep1Clien
             setSelectedRegion(region.id);
             setAvailableCities(region.cities);
           }
+        }
+        // Avanzar automáticamente a la siguiente pantalla
+        onNext(newClient.id);
+      } else {
+        // Si no se encontró el cliente pero se creó, usar el ID retornado
+        if (newClientId) {
+          onNext(newClientId);
+        } else {
+          setErrors({ general: 'Cliente creado pero no se pudo obtener la información' });
         }
       }
     } catch (error) {

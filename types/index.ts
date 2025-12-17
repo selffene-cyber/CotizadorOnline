@@ -196,6 +196,7 @@ export interface MaterialCatalogItem {
   number?: number; // Número correlativo
   name: string;
   unidad: string;
+  defaultCost?: number;
   defaultMermaPct: number;
   category?: string;
 }

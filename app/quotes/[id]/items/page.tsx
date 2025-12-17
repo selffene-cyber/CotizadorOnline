@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Quote, QuoteLineItem, Costing } from '@/types';
-import { getQuoteById, updateQuote } from '@/firebase/quotes';
-import { getClientById } from '@/firebase/clients';
+import { getQuoteById, updateQuote } from '@/supabase/quotes';
+import { getClientById } from '@/supabase/clients';
 import QuoteItemsEditor from '@/components/quote/QuoteItemsEditor';
 import Button from '@/components/ui/Button';
 import SelectCostingModal from '@/components/quote/SelectCostingModal';
@@ -73,7 +73,7 @@ export default function QuoteItemsPage() {
     
     // Si hay costeos asociados, sumar sus totales
     if (costingRefs && costingRefs.length > 0) {
-      const { getCostingById } = await import('@/firebase/costings');
+      const { getCostingById } = await import('@/supabase/costings');
       for (const costingId of costingRefs) {
         try {
           const costing = await getCostingById(costingId);
@@ -165,15 +165,21 @@ export default function QuoteItemsPage() {
     const itemNumber = maxItemNumber + 1;
 
     const precioNeto = costing.totals.precioNeto;
+    const costoTotal = costing.totals.costoTotal || 0;
+    const margin = precioNeto - costoTotal;
+    const marginPct = costoTotal > 0 ? (margin / costoTotal) * 100 : 0;
+
     const newItem: QuoteLineItem = {
       id: `item_${costing.id}_${Date.now()}`,
       itemNumber,
       codigoInterno: '', // Se puede editar después
       description: costing.name,
       quantity: 1,
-      unit: 'LS', // Lump Sum
-      cost: 0, // No editable para items desde costeo
-      unitPrice: precioNeto, // No editable
+      unit: 'un', // Unidad (en lugar de LS para Chile)
+      cost: costoTotal, // Costo total del costeo
+      margin: margin, // Margen calculado
+      marginPct: marginPct, // Margen porcentual
+      unitPrice: precioNeto, // Precio neto del costeo
       subtotal: precioNeto,
       costingId: costing.id, // Referencia al costeo
     };

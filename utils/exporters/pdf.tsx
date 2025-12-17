@@ -138,13 +138,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     companyName: {
-        fontSize: 18,
+        fontSize: 14, // Reducido de 18 a 14 (~22% menos, cerca del 25% solicitado)
         fontWeight: 'bold',
         color: '#0066cc',
         marginBottom: 2,
     },
     companySubname: {
-        fontSize: 14,
+        fontSize: 11, // Reducido proporcionalmente de 14 a 11
         fontWeight: 'bold',
         color: '#0066cc',
     },
@@ -725,7 +725,7 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
             </Page>
 
             {/* Página de Notas (Alcance, Exclusiones, Supuestos) */}
-            {(quote.scope || quote.exclusions || quote.assumptions) && (
+            {((opts.includeScope && quote.scope) || (opts.includeExclusions && quote.exclusions) || (opts.includeAssumptions && quote.assumptions)) && (
                 <Page size="A4" style={styles.page}>
                     {/* Header para Notas */}
                     <View fixed style={{ marginBottom: 3 }}>
@@ -748,7 +748,7 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
 
                     <View style={styles.textSection}>
                         <View style={styles.sectionText}>
-                            {quote.scope && (
+                            {opts.includeScope && quote.scope && (
                                 <View style={{ marginBottom: 10 }}>
                                     <Text style={[styles.sectionText, { fontWeight: 'bold', marginBottom: 4 }]}>Alcance:</Text>
                                     <View style={{ paddingLeft: 5 }}>
@@ -756,7 +756,7 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
                                     </View>
                                 </View>
                             )}
-                            {quote.exclusions && (
+                            {opts.includeExclusions && quote.exclusions && (
                                 <View style={{ marginBottom: 10 }}>
                                     <Text style={[styles.sectionText, { fontWeight: 'bold', marginBottom: 4 }]}>Exclusiones:</Text>
                                     <View style={{ paddingLeft: 5 }}>
@@ -764,7 +764,7 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
                                     </View>
                                 </View>
                             )}
-                            {quote.assumptions && (
+                            {opts.includeAssumptions && quote.assumptions && (
                                 <View style={{ marginBottom: 10 }}>
                                     <Text style={[styles.sectionText, { fontWeight: 'bold', marginBottom: 4 }]}>Supuestos:</Text>
                                     <View style={{ paddingLeft: 5 }}>
@@ -864,6 +864,153 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
                                     <Text style={[styles.tableCellTotal, { width: '30%' }]}>{formatCurrency(item.subtotal)}</Text>
                                 </View>
                             ))}
+                        </View>
+                    )}
+
+                    {/* Equipos y Herramientas */}
+                    {costing.itemsEquipment && costing.itemsEquipment.length > 0 && (
+                        <View style={styles.itemsSection}>
+                            <Text style={styles.sectionTitle}>EQUIPOS Y HERRAMIENTAS</Text>
+                            <View style={styles.tableHeader}>
+                                <Text style={[styles.tableHeaderText, { width: '40%', textAlign: 'left', paddingLeft: 5 }]}>EQUIPO</Text>
+                                <Text style={[styles.tableHeaderText, { width: '15%' }]}>UNIDAD</Text>
+                                <Text style={[styles.tableHeaderText, { width: '15%' }]}>CANT.</Text>
+                                <Text style={[styles.tableHeaderText, { width: '15%', textAlign: 'right' }]}>TARIFA</Text>
+                                <Text style={[styles.tableHeaderText, { width: '15%', textAlign: 'right' }]}>SUBTOTAL</Text>
+                            </View>
+                            {costing.itemsEquipment.map((item, idx) => (
+                                <View key={idx} style={styles.tableRow}>
+                                    <Text style={[styles.tableCellDescription, { width: '40%' }]}>{item.equipment}</Text>
+                                    <Text style={[styles.tableCellQuantity, { width: '15%' }]}>{item.unit}</Text>
+                                    <Text style={[styles.tableCellQuantity, { width: '15%' }]}>{item.quantity}</Text>
+                                    <Text style={[styles.tableCellPrice, { width: '15%' }]}>{formatCurrency(item.rate)}</Text>
+                                    <Text style={[styles.tableCellTotal, { width: '15%' }]}>{formatCurrency(item.subtotal)}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    {/* Logística y Transporte */}
+                    {costing.itemsLogistics && costing.itemsLogistics.subtotal > 0 && (
+                        <View style={styles.itemsSection}>
+                            <Text style={styles.sectionTitle}>LOGÍSTICA Y TRANSPORTE</Text>
+                            <View style={styles.tableHeader}>
+                                <Text style={[styles.tableHeaderText, { width: '30%', textAlign: 'left', paddingLeft: 5 }]}>CONCEPTO</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%' }]}>CANTIDAD</Text>
+                                <Text style={[styles.tableHeaderText, { width: '25%', textAlign: 'right' }]}>TARIFA/COSTO</Text>
+                                <Text style={[styles.tableHeaderText, { width: '25%', textAlign: 'right' }]}>SUBTOTAL</Text>
+                            </View>
+                            {costing.itemsLogistics.mode === 'km' && (
+                                <>
+                                    {costing.itemsLogistics.km && costing.itemsLogistics.ratePerKm && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Kilómetros</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>{costing.itemsLogistics.km}</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.ratePerKm)}</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency((costing.itemsLogistics.km || 0) * (costing.itemsLogistics.ratePerKm || 0))}</Text>
+                                        </View>
+                                    )}
+                                    {costing.itemsLogistics.tolls && costing.itemsLogistics.tolls > 0 && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Peajes</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>-</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>-</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.tolls)}</Text>
+                                        </View>
+                                    )}
+                                    {costing.itemsLogistics.driverHours && costing.itemsLogistics.driverRate && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Horas Conductor</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>{costing.itemsLogistics.driverHours}</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.driverRate)}</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency((costing.itemsLogistics.driverHours || 0) * (costing.itemsLogistics.driverRate || 0))}</Text>
+                                        </View>
+                                    )}
+                                </>
+                            )}
+                            {costing.itemsLogistics.mode === 'viatico' && (
+                                <>
+                                    {costing.itemsLogistics.viaticoPerDay && costing.itemsLogistics.days && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Viático por día</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>{costing.itemsLogistics.days}</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.viaticoPerDay)}</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency((costing.itemsLogistics.viaticoPerDay || 0) * (costing.itemsLogistics.days || 0))}</Text>
+                                        </View>
+                                    )}
+                                    {costing.itemsLogistics.accommodation && costing.itemsLogistics.accommodation > 0 && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Alojamiento</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>-</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>-</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.accommodation)}</Text>
+                                        </View>
+                                    )}
+                                    {costing.itemsLogistics.fixedMobilization && costing.itemsLogistics.fixedMobilization > 0 && (
+                                        <View style={styles.tableRow}>
+                                            <Text style={[styles.tableCellDescription, { width: '30%' }]}>Movilización Fija</Text>
+                                            <Text style={[styles.tableCellQuantity, { width: '20%' }]}>-</Text>
+                                            <Text style={[styles.tableCellPrice, { width: '25%' }]}>-</Text>
+                                            <Text style={[styles.tableCellTotal, { width: '25%' }]}>{formatCurrency(costing.itemsLogistics.fixedMobilization)}</Text>
+                                        </View>
+                                    )}
+                                </>
+                            )}
+                            <View style={[styles.tableRow, { backgroundColor: '#f5f5f5', fontWeight: 'bold' }]}>
+                                <Text style={[styles.tableCellDescription, { width: '75%', fontWeight: 'bold' }]}>TOTAL LOGÍSTICA Y TRANSPORTE</Text>
+                                <Text style={[styles.tableCellTotal, { width: '25%', fontWeight: 'bold' }]}>{formatCurrency(costing.itemsLogistics.subtotal)}</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Indirectos de Obra */}
+                    {costing.itemsIndirects && costing.itemsIndirects.length > 0 && (
+                        <View style={styles.itemsSection}>
+                            <Text style={styles.sectionTitle}>INDIRECTOS DE OBRA</Text>
+                            <View style={styles.tableHeader}>
+                                <Text style={[styles.tableHeaderText, { width: '40%', textAlign: 'left', paddingLeft: 5 }]}>DESCRIPCIÓN</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%' }]}>TIPO</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%', textAlign: 'right' }]}>CANTIDAD/TARIFA</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%', textAlign: 'right' }]}>SUBTOTAL</Text>
+                            </View>
+                            {costing.itemsIndirects.map((item, idx) => (
+                                <View key={idx} style={styles.tableRow}>
+                                    <Text style={[styles.tableCellDescription, { width: '40%' }]}>{item.description}</Text>
+                                    <Text style={[styles.tableCellQuantity, { width: '20%' }]}>{item.type === 'hh' ? 'HH' : 'FIJO'}</Text>
+                                    <Text style={[styles.tableCellPrice, { width: '20%' }]}>
+                                        {item.type === 'hh' 
+                                            ? `${item.hours || 0} HH × ${formatCurrency(item.rate || 0)}`
+                                            : formatCurrency(item.amount || 0)
+                                        }
+                                    </Text>
+                                    <Text style={[styles.tableCellTotal, { width: '20%' }]}>{formatCurrency(item.subtotal)}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    {/* Contingencias y Riesgos */}
+                    {costing.contingencyItems && costing.contingencyItems.length > 0 && (
+                        <View style={styles.itemsSection}>
+                            <Text style={styles.sectionTitle}>CONTINGENCIAS Y RIESGOS</Text>
+                            <View style={styles.tableHeader}>
+                                <Text style={[styles.tableHeaderText, { width: '60%', textAlign: 'left', paddingLeft: 5 }]}>CONCEPTO</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%', textAlign: 'right' }]}>PORCENTAJE</Text>
+                                <Text style={[styles.tableHeaderText, { width: '20%', textAlign: 'right' }]}>VALOR</Text>
+                            </View>
+                            {costing.contingencyItems.map((item, idx) => {
+                                // Calcular el valor de la contingencia basado en el porcentaje
+                                // Necesitamos la base para calcular el valor
+                                const base = costing.totals?.base || 0;
+                                const contingencyValue = (base * item.percentage) / 100;
+                                return (
+                                    <View key={idx} style={styles.tableRow}>
+                                        <Text style={[styles.tableCellDescription, { width: '60%' }]}>{item.name}</Text>
+                                        <Text style={[styles.tableCellPrice, { width: '20%' }]}>{item.percentage}%</Text>
+                                        <Text style={[styles.tableCellTotal, { width: '20%' }]}>{formatCurrency(contingencyValue)}</Text>
+                                    </View>
+                                );
+                            })}
                         </View>
                     )}
 

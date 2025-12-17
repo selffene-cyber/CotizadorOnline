@@ -11,7 +11,7 @@ import { Quote, Client, CompanySettings } from '@/types';
 import Button from '@/components/ui/Button';
 import ExportPDFModal, { PDFExportOptions } from './ExportPDFModal';
 import { ArrowDownTrayIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import { getCompanySettings } from '@/firebase/settings';
+import { getCompanySettings } from '@/supabase/settings';
 
 interface ExportButtonsProps {
   quote: Quote;
@@ -55,7 +55,7 @@ export default function ExportButtons({ quote, client }: ExportButtonsProps) {
     if (options.includeMO || options.includeMaterials || options.includeMargins || options.includeCostSummary) {
       if (quote.costingReferences && quote.costingReferences.length > 0) {
         try {
-          const { getCostingById } = await import('@/firebase/costings');
+          const { getCostingById } = await import('@/supabase/costings');
           const loadedCostings = await Promise.all(
             quote.costingReferences.map(id => getCostingById(id))
           );

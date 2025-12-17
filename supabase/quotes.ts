@@ -1,6 +1,11 @@
 // Helpers para manejo de Cotizaciones con Supabase
 import { Quote, QuoteStatus } from '@/types';
-import { supabase, hasValidSupabaseConfig } from './config';
+import { supabase, hasValidSupabaseConfig, createSupabaseClient } from './config';
+
+// Helper para obtener el cliente correcto
+function getSupabaseClient() {
+  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
+}
 
 // Función auxiliar para convertir de snake_case a camelCase
 function toQuote(row: any): Quote {
@@ -68,7 +73,40 @@ async function getNextQuoteNumber(): Promise<number> {
     return 1;
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  
+  // Obtener el tenant_id del usuario actual para filtrar por tenant
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  
+  if (!userError && user) {
+    const { data: memberships } = await supabaseClient
+      .from('memberships')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (memberships && memberships.length > 0) {
+      const tenantId = memberships[0].tenant_id;
+      
+      // Buscar el máximo quote_number del tenant actual
+      const { data, error } = await supabaseClient
+        .from('quotes')
+        .select('quote_number')
+        .eq('tenant_id', tenantId)
+        .not('quote_number', 'is', null)
+        .order('quote_number', { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        return 1;
+      }
+
+      return (data[0].quote_number || 0) + 1;
+    }
+  }
+
+  // Fallback: buscar globalmente si no se puede obtener tenant_id
+  const { data, error } = await supabaseClient
     .from('quotes')
     .select('quote_number')
     .not('quote_number', 'is', null)
@@ -82,40 +120,104 @@ async function getNextQuoteNumber(): Promise<number> {
   return (data[0].quote_number || 0) + 1;
 }
 
-export async function createQuote(quoteData: Omit<Quote, 'id'>): Promise<string> {
+export async function createQuote(quoteData: Omit<Quote, 'id'>, tenantId?: string): Promise<string> {
   if (!hasValidSupabaseConfig()) {
     throw new Error('Supabase no está configurado');
   }
 
+  const supabaseClient = getSupabaseClient();
+  const rowData = toRow(quoteData);
+  
+  // Obtener el usuario actual
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  
+  if (userError || !user) {
+    throw new Error('Usuario no autenticado. Debes iniciar sesión para crear cotizaciones.');
+  }
+
+  // Agregar created_by
+  rowData.created_by = user.id;
+
+  // Obtener tenant_id si no se proporciona
+  let finalTenantId = tenantId;
+  
+  if (!finalTenantId) {
+    // Buscar el tenant_id del usuario desde memberships
+    const { data: memberships, error: membershipError } = await supabaseClient
+      .from('memberships')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (membershipError || !memberships || memberships.length === 0) {
+      throw new Error('No se encontró un tenant asociado. Asegúrate de estar asociado a una empresa.');
+    }
+
+    finalTenantId = memberships[0].tenant_id;
+  }
+
+  if (!finalTenantId) {
+    throw new Error('No se pudo determinar el tenant_id. Proporciona un tenant_id o asegúrate de estar asociado a una empresa.');
+  }
+
+  // Agregar tenant_id
+  rowData.tenant_id = finalTenantId;
+
   // Si no tiene número asignado, asignar el siguiente correlativo
   const quoteNumber = quoteData.quoteNumber || await getNextQuoteNumber();
+  rowData.quote_number = quoteNumber;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('quotes')
-    .insert({
-      ...toRow(quoteData),
-      quote_number: quoteNumber,
-    })
+    .insert(rowData)
     .select('id')
     .single();
 
   if (error) {
+    console.error('[createQuote] Error completo:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     throw new Error(`Error al crear cotización: ${error.message}`);
   }
 
   return data.id;
 }
 
-export async function getQuoteById(quoteId: string): Promise<Quote | null> {
+export async function getQuoteById(quoteId: string, tenantId?: string): Promise<Quote | null> {
   if (!hasValidSupabaseConfig()) {
     return null;
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  let query = supabaseClient
     .from('quotes')
     .select('*')
-    .eq('id', quoteId)
-    .single();
+    .eq('id', quoteId);
+
+  // Filtrar por tenant_id si se proporciona o obtenerlo automáticamente
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  } else {
+    // Si no se proporciona tenant_id, obtenerlo automáticamente
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (!userError && user) {
+      const { data: memberships } = await supabaseClient
+        .from('memberships')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (memberships && memberships.length > 0) {
+        query = query.eq('tenant_id', memberships[0].tenant_id);
+      }
+    }
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
     return null;
@@ -124,15 +226,37 @@ export async function getQuoteById(quoteId: string): Promise<Quote | null> {
   return toQuote(data);
 }
 
-export async function getAllQuotes(): Promise<Quote[]> {
+export async function getAllQuotes(tenantId?: string): Promise<Quote[]> {
   if (!hasValidSupabaseConfig()) {
     return [];
   }
 
-  const { data, error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  let query = supabaseClient
     .from('quotes')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('*');
+
+  // Filtrar por tenant_id si se proporciona o obtenerlo automáticamente
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  } else {
+    // Si no se proporciona tenant_id, obtenerlo automáticamente
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (!userError && user) {
+      const { data: memberships } = await supabaseClient
+        .from('memberships')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (memberships && memberships.length > 0) {
+        query = query.eq('tenant_id', memberships[0].tenant_id);
+      }
+    }
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error || !data) {
     return [];
@@ -200,12 +324,26 @@ export async function updateQuote(quoteId: string, quoteData: Partial<Quote>): P
     throw new Error('Supabase no está configurado');
   }
 
-  const { error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  const rowData = toRow(quoteData);
+  
+  // Agregar updated_at si no está presente
+  if (!rowData.updated_at) {
+    rowData.updated_at = new Date().toISOString();
+  }
+
+  const { error } = await supabaseClient
     .from('quotes')
-    .update(toRow(quoteData))
+    .update(rowData)
     .eq('id', quoteId);
 
   if (error) {
+    console.error('[updateQuote] Error completo:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     throw new Error(`Error al actualizar cotización: ${error.message}`);
   }
 }
@@ -215,12 +353,20 @@ export async function deleteQuote(quoteId: string): Promise<void> {
     throw new Error('Supabase no está configurado');
   }
 
-  const { error } = await supabase
+  const supabaseClient = getSupabaseClient();
+
+  const { error } = await supabaseClient
     .from('quotes')
     .delete()
     .eq('id', quoteId);
 
   if (error) {
+    console.error('[deleteQuote] Error completo:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     throw new Error(`Error al eliminar cotización: ${error.message}`);
   }
 }

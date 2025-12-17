@@ -3,7 +3,7 @@
 // Sección de Mano de Obra
 import { useState, useEffect } from 'react';
 import { QuoteItemMO } from '@/types';
-import { getLaborCatalog, saveLaborCatalog } from '@/firebase/catalogs';
+import { getLaborCatalog, saveLaborCatalog } from '@/supabase/catalogs';
 import { LaborCatalogItem } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -59,7 +59,7 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
     setCostHHInputs({ ...costHHInputs, [newIndex]: '' });
   };
 
-  const updateItem = async (index: number, updates: Partial<QuoteItemMO>) => {
+  const updateItem = async (index: number, updates: Partial<QuoteItemMO>, saveToCatalog: boolean = false) => {
     const updated = [...items];
     let item = { ...updated[index], ...updates };
 
@@ -69,13 +69,13 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
     updated[index] = item;
     onChange(updated);
 
-    // Si se completó un cargo manualmente (tiene cargo y costHH), agregarlo al catálogo si no existe
-    if (item.cargo && item.costHH > 0) {
-      const existsInCatalog = laborCatalog.some(cat => cat.cargo.toLowerCase() === item.cargo.toLowerCase());
+    // Solo guardar en catálogo si se solicita explícitamente (onBlur) y se cumplen las condiciones
+    if (saveToCatalog && item.cargo && item.cargo.trim().length > 0 && item.costHH > 0) {
+      const existsInCatalog = laborCatalog.some(cat => cat.cargo.toLowerCase() === item.cargo.toLowerCase().trim());
       if (!existsInCatalog) {
         const newCatalogItem: LaborCatalogItem = {
           id: Date.now().toString(),
-          cargo: item.cargo,
+          cargo: item.cargo.trim(),
           defaultCostHH: item.costHH,
           category: ''
         };
@@ -100,7 +100,7 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
     updateItem(index, {
       cargo: catalogItem.cargo,
       costHH: catalogItem.defaultCostHH,
-    });
+    }, false); // No guardar en catálogo porque ya existe
   };
 
   return (
@@ -138,7 +138,7 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
                             if (catalogItem) {
                               selectFromCatalog(index, catalogItem);
                             } else {
-                              updateItem(index, { cargo: e.target.value });
+                              updateItem(index, { cargo: e.target.value }, false);
                             }
                           }}
                           className="w-full px-2 py-1 border rounded"
@@ -154,7 +154,14 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
                         <input
                           type="text"
                           value={item.cargo}
-                          onChange={(e) => updateItem(index, { cargo: e.target.value })}
+                          onChange={(e) => updateItem(index, { cargo: e.target.value }, false)}
+                          onBlur={() => {
+                            // Guardar en catálogo solo cuando el usuario termine de escribir
+                            if (item.cargo && item.cargo.trim().length > 0 && item.costHH > 0) {
+                              updateItem(index, {}, true);
+                            }
+                            setEditingIndex(null);
+                          }}
                           placeholder="O escribir manualmente"
                           className="mt-1 w-full px-2 py-1 border rounded text-sm"
                         />
@@ -172,7 +179,7 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
                     <input
                       type="number"
                       value={item.hh || 0}
-                      onChange={(e) => updateItem(index, { hh: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => updateItem(index, { hh: parseFloat(e.target.value) || 0 }, false)}
                       className="w-20 px-2 py-1 border rounded"
                       min="0"
                       step="0.5"
@@ -187,12 +194,16 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
                         const formatted = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                         setCostHHInputs({ ...costHHInputs, [index]: formatted });
                         const numericValue = parseNumber(inputValue);
-                        updateItem(index, { costHH: numericValue });
+                        updateItem(index, { costHH: numericValue }, false);
                       }}
                       onBlur={(e) => {
                         const numericValue = parseNumber(e.target.value);
                         if (numericValue === 0) {
                           setCostHHInputs({ ...costHHInputs, [index]: '' });
+                        }
+                        // Guardar en catálogo cuando se completa el costHH
+                        if (item.cargo && item.cargo.trim().length > 0 && numericValue > 0) {
+                          updateItem(index, { costHH: numericValue }, true);
                         }
                       }}
                       placeholder="0"
@@ -203,7 +214,7 @@ export default function SectionMO({ items, onChange, hoursPerDay = 9, efficiency
                     <input
                       type="number"
                       value={item.recargoPct || 0}
-                      onChange={(e) => updateItem(index, { recargoPct: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => updateItem(index, { recargoPct: parseFloat(e.target.value) || 0 }, false)}
                       className="w-20 px-2 py-1 border rounded"
                       min="0"
                       step="0.1"

@@ -18,7 +18,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { ALL_UNITS } from '@/utils/units';
 import ResponsiveTable, { TableColumn } from '@/components/ui/ResponsiveTable';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 type CatalogTab = 'labor' | 'materials' | 'equipment';
 
@@ -34,6 +34,24 @@ export default function CatalogPage() {
   const [editingLabor, setEditingLabor] = useState<LaborCatalogItem | null>(null);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCatalogItem | null>(null);
   const [editingEquipment, setEditingEquipment] = useState<EquipmentCatalogItem | null>(null);
+  const [costHHInput, setCostHHInput] = useState<string>('');
+
+  // Estados para filtros de búsqueda
+  const [searchLabor, setSearchLabor] = useState<string>('');
+  const [searchMaterials, setSearchMaterials] = useState<string>('');
+  const [searchEquipment, setSearchEquipment] = useState<string>('');
+
+  // Función para formatear número con separadores de miles
+  const formatNumber = (value: number | undefined | null): string => {
+    if (value === undefined || value === null || value === 0) return '';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  // Función para parsear string con formato a número
+  const parseNumber = (value: string): number => {
+    const cleaned = value.replace(/\./g, '');
+    return parseInt(cleaned) || 0;
+  };
 
   useEffect(() => {
     loadCatalogs();
@@ -48,11 +66,13 @@ export default function CatalogPage() {
       ]);
       
       // Asignar números correlativos a items que no lo tengan
+      // PERO mantener los datos existentes (como defaultCost) cuando se reasignan números
       const laborWithNumbers = assignCorrelativeNumbers(labor);
       const materialsWithNumbers = assignCorrelativeNumbers(materials);
       const equipmentWithNumbers = assignCorrelativeNumbers(equipment);
       
-      // Verificar si hubo cambios (si algún item no tenía número válido)
+      // Verificar si hubo cambios REALES (si algún item no tenía número válido)
+      // NO guardar solo por reasignación de números para evitar perder datos
       const laborHasMissingNumbers = labor.some(item => {
         const num = item.number;
         return num === undefined || num === null || num === 0 || typeof num !== 'number';
@@ -66,17 +86,27 @@ export default function CatalogPage() {
         return num === undefined || num === null || num === 0 || typeof num !== 'number';
       });
       
-      // Guardar siempre si hubo cambios o si los arrays tienen diferente longitud
-      if (laborHasMissingNumbers || labor.length !== laborWithNumbers.length) {
+      // Solo guardar si REALMENTE faltan números, no solo por reasignación
+      // Esto evita perder datos como defaultCost cuando se reasignan números
+      if (laborHasMissingNumbers) {
         await saveLaborCatalog(laborWithNumbers);
       }
-      if (materialsHasMissingNumbers || materials.length !== materialsWithNumbers.length) {
+      if (materialsHasMissingNumbers) {
+        console.log('[loadCatalogs] Guardando materiales porque faltan números');
         await saveMaterialsCatalog(materialsWithNumbers);
+      } else {
+        console.log('[loadCatalogs] NO guardando materiales - solo reasignación de números (preservando defaultCost)');
       }
-      if (equipmentHasMissingNumbers || equipment.length !== equipmentWithNumbers.length) {
+      if (equipmentHasMissingNumbers) {
         await saveEquipmentCatalog(equipmentWithNumbers);
       }
       
+      console.log('[loadCatalogs] Materiales cargados:', materialsWithNumbers);
+      console.log('[loadCatalogs] Materiales con costos:', materialsWithNumbers.map(m => ({ 
+        name: m.name, 
+        defaultCost: m.defaultCost,
+        type: typeof m.defaultCost 
+      })));
       setLaborItems(laborWithNumbers);
       setMaterialsItems(materialsWithNumbers);
       setEquipmentItems(equipmentWithNumbers);
@@ -86,29 +116,15 @@ export default function CatalogPage() {
   };
 
   // Función helper para asignar números correlativos
+  // Reasigna TODOS los números secuencialmente (1, 2, 3...) para evitar duplicados
   const assignCorrelativeNumbers = <T extends { number?: number }>(items: T[]): T[] => {
     if (items.length === 0) return items;
     
-    // Encontrar el número máximo existente
-    let maxNumber = 0;
-    items.forEach(item => {
-      if (item.number && typeof item.number === 'number' && item.number > maxNumber) {
-        maxNumber = item.number;
-      }
-    });
-    
-    // Asignar números a items que no lo tengan
-    let currentNumber = maxNumber;
-    const updated = items.map(item => {
-      // Verificar si el item no tiene número válido
-      if (item.number === undefined || item.number === null || item.number === 0 || typeof item.number !== 'number') {
-        currentNumber++;
-        return { ...item, number: currentNumber };
-      }
-      return item;
-    });
-    
-    return updated;
+    // Simplemente asignar números secuenciales empezando desde 1
+    return items.map((item, index) => ({
+      ...item,
+      number: index + 1
+    }));
   };
 
   // ===== MANO DE OBRA =====
@@ -118,6 +134,7 @@ export default function CatalogPage() {
       defaultCostHH: 0,
       category: ''
     });
+    setCostHHInput('');
   };
 
   const handleSaveLabor = async () => {
@@ -146,11 +163,17 @@ export default function CatalogPage() {
     setLaborItems(updated);
     await saveLaborCatalog(updated);
     setEditingLabor(null);
+    setCostHHInput(''); // Limpiar el input después de guardar
   };
 
   const handleDeleteLabor = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este item del catálogo?')) return;
-    const updated = laborItems.filter(item => item.id !== id);
+    let updated = laborItems.filter(item => item.id !== id);
+    // Reasignar números correlativos después de eliminar
+    updated = updated.map((item, index) => ({
+      ...item,
+      number: index + 1
+    }));
     setLaborItems(updated);
     await saveLaborCatalog(updated);
   };
@@ -160,6 +183,7 @@ export default function CatalogPage() {
     setEditingMaterial({
       name: '',
       unidad: 'un',
+      defaultCost: 0,
       defaultMermaPct: 5,
       category: ''
     });
@@ -168,11 +192,19 @@ export default function CatalogPage() {
   const handleSaveMaterial = async () => {
     if (!editingMaterial || !editingMaterial.name.trim()) return;
     
+    // Asegurar que defaultCost esté definido
+    const materialToSave = {
+      ...editingMaterial,
+      defaultCost: editingMaterial.defaultCost !== undefined && editingMaterial.defaultCost !== null 
+        ? editingMaterial.defaultCost 
+        : 0
+    };
+    
     const updated = [...materialsItems];
-    if (editingMaterial.id) {
-      const index = updated.findIndex(item => item.id === editingMaterial.id);
+    if (materialToSave.id) {
+      const index = updated.findIndex(item => item.id === materialToSave.id);
       if (index >= 0) {
-        updated[index] = editingMaterial;
+        updated[index] = materialToSave;
       }
     } else {
       // Agregar nuevo - generar número correlativo
@@ -180,13 +212,15 @@ export default function CatalogPage() {
         return item.number && item.number > max ? item.number : max;
       }, 0);
       const newItem: MaterialCatalogItem = {
-        ...editingMaterial,
+        ...materialToSave,
         id: Date.now().toString(),
         number: maxNumber + 1
       };
       updated.push(newItem);
     }
     
+    console.log('[handleSaveMaterial] Guardando material:', materialToSave);
+    console.log('[handleSaveMaterial] defaultCost:', materialToSave.defaultCost);
     setMaterialsItems(updated);
     await saveMaterialsCatalog(updated);
     setEditingMaterial(null);
@@ -194,7 +228,12 @@ export default function CatalogPage() {
 
   const handleDeleteMaterial = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este item del catálogo?')) return;
-    const updated = materialsItems.filter(item => item.id !== id);
+    let updated = materialsItems.filter(item => item.id !== id);
+    // Reasignar números correlativos después de eliminar
+    updated = updated.map((item, index) => ({
+      ...item,
+      number: index + 1
+    }));
     setMaterialsItems(updated);
     await saveMaterialsCatalog(updated);
   };
@@ -238,7 +277,12 @@ export default function CatalogPage() {
 
   const handleDeleteEquipment = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este item del catálogo?')) return;
-    const updated = equipmentItems.filter(item => item.id !== id);
+    let updated = equipmentItems.filter(item => item.id !== id);
+    // Reasignar números correlativos después de eliminar
+    updated = updated.map((item, index) => ({
+      ...item,
+      number: index + 1
+    }));
     setEquipmentItems(updated);
     await saveEquipmentCatalog(updated);
   };
@@ -294,6 +338,20 @@ export default function CatalogPage() {
             <Button onClick={handleAddLabor} variant="outline">Agregar</Button>
           </div>
 
+          {/* Filtro de búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchLabor}
+                onChange={(e) => setSearchLabor(e.target.value)}
+                placeholder="Buscar por cargo..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
           {editingLabor && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <h3 className="font-medium text-gray-900 mb-3">
@@ -314,11 +372,29 @@ export default function CatalogPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Costo por HH ($) *
                   </label>
-                  <Input
-                    type="number"
-                    value={editingLabor.defaultCostHH}
-                    onChange={(e) => setEditingLabor({ ...editingLabor, defaultCostHH: parseFloat(e.target.value) || 0 })}
-                    min="0"
+                  <input
+                    type="text"
+                    value={costHHInput !== '' ? costHHInput : (editingLabor?.defaultCostHH ? formatNumber(editingLabor.defaultCostHH) : '')}
+                    onChange={(e) => {
+                      // Permitir solo números y puntos como separadores de miles
+                      const inputValue = e.target.value.replace(/[^0-9]/g, '');
+                      const formatted = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                      setCostHHInput(formatted);
+                      const numValue = parseNumber(inputValue);
+                      if (editingLabor) {
+                        setEditingLabor({ ...editingLabor, defaultCostHH: numValue });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const numericValue = parseNumber(e.target.value);
+                      if (numericValue === 0) {
+                        setCostHHInput('');
+                      } else {
+                        setCostHHInput(formatNumber(numericValue));
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   />
                 </div>
                 <div>
@@ -340,7 +416,9 @@ export default function CatalogPage() {
           )}
 
           <ResponsiveTable
-            data={laborItems}
+            data={laborItems.filter(item => 
+              searchLabor === '' || item.cargo.toLowerCase().includes(searchLabor.toLowerCase())
+            )}
             columns={[
               {
                 key: 'number',
@@ -357,18 +435,31 @@ export default function CatalogPage() {
                 mobilePriority: 2,
               },
               {
-                key: 'cost',
-                header: 'Costo/HH',
-                render: (item) => `$${item.defaultCostHH.toLocaleString('es-CL')}`,
-                mobileLabel: 'Costo/HH',
+                key: 'unit',
+                header: 'Unidad',
+                render: (item) => 'HH',
+                mobileLabel: 'Unidad',
                 mobilePriority: 3,
+              },
+              {
+                key: 'cost',
+                header: 'Costo',
+                render: (item) => {
+                  // Formatear el número correctamente
+                  const cost = item.defaultCostHH || 0;
+                  // Usar formato chileno con separadores de miles
+                  return `$${cost.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+                },
+                mobileLabel: 'Costo',
+                mobilePriority: 4,
+                align: 'right' as const,
               },
               {
                 key: 'category',
                 header: 'Categoría',
                 render: (item) => item.category || '-',
                 mobileLabel: 'Categoría',
-                mobilePriority: 4,
+                mobilePriority: 5,
               },
             ]}
             keyExtractor={(item) => item.id || ''}
@@ -376,7 +467,10 @@ export default function CatalogPage() {
             actions={(item) => (
               <>
                 <button
-                  onClick={() => setEditingLabor(item)}
+                  onClick={() => {
+                    setEditingLabor(item);
+                    setCostHHInput(item.defaultCostHH ? formatNumber(item.defaultCostHH) : '');
+                  }}
                   className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
                   title="Editar"
                 >
@@ -403,12 +497,26 @@ export default function CatalogPage() {
             <Button onClick={handleAddMaterial} variant="outline">Agregar</Button>
           </div>
 
+          {/* Filtro de búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchMaterials}
+                onChange={(e) => setSearchMaterials(e.target.value)}
+                placeholder="Buscar por nombre..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
           {editingMaterial && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <h3 className="font-medium text-gray-900 mb-3">
                 {editingMaterial.id ? 'Editar' : 'Nuevo'} Item
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nombre *
@@ -434,6 +542,31 @@ export default function CatalogPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Costo ($) *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingMaterial.defaultCost !== undefined && editingMaterial.defaultCost !== null && editingMaterial.defaultCost > 0 
+                      ? formatNumber(editingMaterial.defaultCost) 
+                      : ''}
+                    onChange={(e) => {
+                      const inputValue = e.target.value.replace(/[^0-9]/g, '');
+                      const formatted = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                      const numValue = parseNumber(inputValue);
+                      console.log('[Material Cost Input onChange]', { 
+                        inputValue, 
+                        numValue, 
+                        formatted,
+                        currentDefaultCost: editingMaterial.defaultCost
+                      });
+                      setEditingMaterial({ ...editingMaterial, defaultCost: numValue });
+                    }}
+                    placeholder="0"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -466,7 +599,9 @@ export default function CatalogPage() {
           )}
 
           <ResponsiveTable
-            data={materialsItems}
+            data={materialsItems.filter(item => 
+              searchMaterials === '' || item.name.toLowerCase().includes(searchMaterials.toLowerCase())
+            )}
             columns={[
               {
                 key: 'number',
@@ -490,18 +625,48 @@ export default function CatalogPage() {
                 mobilePriority: 3,
               },
               {
+                key: 'cost',
+                header: 'Costo',
+                render: (item) => {
+                  // Asegurar que el costo se muestre correctamente
+                  // El costo puede venir como número, string, o null/undefined
+                  let cost = 0;
+                  if (item.defaultCost !== undefined && item.defaultCost !== null) {
+                    if (typeof item.defaultCost === 'string') {
+                      cost = parseFloat(item.defaultCost) || 0;
+                    } else if (typeof item.defaultCost === 'number') {
+                      cost = item.defaultCost;
+                    }
+                  }
+                  
+                  console.log('[Material Cost Render]', { 
+                    name: item.name, 
+                    defaultCost: item.defaultCost, 
+                    cost,
+                    type: typeof item.defaultCost
+                  });
+                  
+                  if (cost === 0) return '$0';
+                  // Formatear con separadores de miles
+                  return `$${Math.round(cost).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+                },
+                mobileLabel: 'Costo',
+                mobilePriority: 4,
+                align: 'right' as const,
+              },
+              {
                 key: 'merma',
                 header: 'Merma %',
                 render: (item) => `${item.defaultMermaPct}%`,
                 mobileLabel: 'Merma %',
-                mobilePriority: 4,
+                mobilePriority: 5,
               },
               {
                 key: 'category',
                 header: 'Categoría',
                 render: (item) => item.category || '-',
                 mobileLabel: 'Categoría',
-                mobilePriority: 5,
+                mobilePriority: 6,
               },
             ]}
             keyExtractor={(item) => item.id || ''}
@@ -509,7 +674,11 @@ export default function CatalogPage() {
             actions={(item) => (
               <>
                 <button
-                  onClick={() => setEditingMaterial(item)}
+                  onClick={() => {
+                    console.log('[Edit Material] Item clicked:', item);
+                    console.log('[Edit Material] defaultCost:', item.defaultCost);
+                    setEditingMaterial(item);
+                  }}
                   className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
                   title="Editar"
                 >
@@ -534,6 +703,20 @@ export default function CatalogPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Equipos y Herramientas</h2>
             <Button onClick={handleAddEquipment} variant="outline">Agregar</Button>
+          </div>
+
+          {/* Filtro de búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchEquipment}
+                onChange={(e) => setSearchEquipment(e.target.value)}
+                placeholder="Buscar por nombre..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
 
           {editingEquipment && (
@@ -595,7 +778,9 @@ export default function CatalogPage() {
           )}
 
           <ResponsiveTable
-            data={equipmentItems}
+            data={equipmentItems.filter(item => 
+              searchEquipment === '' || item.name.toLowerCase().includes(searchEquipment.toLowerCase())
+            )}
             columns={[
               {
                 key: 'number',

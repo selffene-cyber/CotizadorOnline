@@ -3,7 +3,7 @@
 // Página de Costeo de Cotización
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getQuoteById, updateQuote as updateQuoteFirebase } from '@/firebase/quotes';
+import { getQuoteById, updateQuote as updateQuoteFirebase } from '@/supabase/quotes';
 import { Quote, QuoteTotals, Costing } from '@/types';
 import { useQuote } from '@/hooks/useQuote';
 import SectionMO from '@/components/quote/costeo/SectionMO';
@@ -16,7 +16,7 @@ import SectionGGUtilidad from '@/components/quote/costeo/SectionGGUtilidad';
 import SectionContingencia from '@/components/quote/costeo/SectionContingencia';
 import Button from '@/components/ui/Button';
 import { SkeletonCard } from '@/components/ui/Skeleton';
-import { getSettings } from '@/firebase/catalogs';
+import { getSettings } from '@/supabase/catalogs';
 import { Settings } from '@/types';
 import { 
   ArrowLeftIcon, 
@@ -55,12 +55,62 @@ export default function CosteoPage() {
     try {
       const quoteData = await getQuoteById(quoteId);
       if (quoteData) {
-        // Si no tiene totales o le faltan los nuevos campos de IVA, recalcular
-        if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
-          const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
-          quoteData.totals = calculateQuoteTotals(quoteData as any) as any as typeof quoteData.totals;
+        // Si la cotización tiene costeos asociados, cargar el primer costeo para obtener los datos
+        if (quoteData.costingReferences && quoteData.costingReferences.length > 0) {
+          try {
+            const { getCostingById } = await import('@/supabase/costings');
+            const costingId = quoteData.costingReferences[0];
+            const costingData = await getCostingById(costingId);
+            
+            if (costingData) {
+              // Fusionar los datos del costeo con los de la cotización
+              const mergedData = {
+                ...quoteData,
+                // Datos del costeo
+                itemsMO: costingData.itemsMO || [],
+                itemsMaterials: costingData.itemsMaterials || [],
+                itemsEquipment: costingData.itemsEquipment || [],
+                itemsLogistics: costingData.itemsLogistics || { mode: 'km', subtotal: 0 },
+                itemsIndirects: costingData.itemsIndirects || [],
+                contingencyItems: costingData.contingencyItems || [],
+                ggPercentage: costingData.ggPercentage || 12,
+                utilityPercentage: costingData.utilityPercentage || quoteData.utilityPercentage || 55,
+                // Mantener los totales del costeo si existen
+                totals: costingData.totals || quoteData.totals,
+              };
+              
+              // Si no tiene totales o le faltan los nuevos campos de IVA, recalcular
+              if (!mergedData.totals || !('precioNeto' in mergedData.totals) || !mergedData.totals.iva || !mergedData.totals.totalConIva) {
+                const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
+                mergedData.totals = calculateQuoteTotals(mergedData as any) as any as typeof mergedData.totals;
+              }
+              
+              updateQuote(mergedData as any);
+            } else {
+              // Si no se puede cargar el costeo, usar solo los datos de la cotización
+              if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
+                const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
+                quoteData.totals = calculateQuoteTotals(quoteData as any) as any as typeof quoteData.totals;
+              }
+              updateQuote(quoteData as any);
+            }
+          } catch (costingError) {
+            console.error('Error cargando costeo asociado:', costingError);
+            // Si falla cargar el costeo, usar solo los datos de la cotización
+            if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
+              const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
+              quoteData.totals = calculateQuoteTotals(quoteData as any) as any as typeof quoteData.totals;
+            }
+            updateQuote(quoteData as any);
+          }
+        } else {
+          // Si no tiene costeos asociados, usar solo los datos de la cotización
+          if (!quoteData.totals || !('precioNeto' in quoteData.totals) || !quoteData.totals.iva || !quoteData.totals.totalConIva) {
+            const { calculateQuoteTotals } = await import('@/utils/calculations/quoteTotals');
+            quoteData.totals = calculateQuoteTotals(quoteData as any) as any as typeof quoteData.totals;
+          }
+          updateQuote(quoteData as any);
         }
-        updateQuote(quoteData as any);
       } else {
         alert('Cotización no encontrada');
         router.push('/dashboard');
@@ -86,7 +136,7 @@ export default function CosteoPage() {
     if (!quote.id) return;
 
     try {
-      await updateQuoteFirebase(quote.id, {
+      await updateQuoteFirebase(quote.id!, {
         ...quote,
         totals,
         updatedAt: new Date(),

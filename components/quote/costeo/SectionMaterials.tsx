@@ -26,8 +26,11 @@ export default function SectionMaterials({ items, onChange }: SectionMaterialsPr
 
   // Función para parsear string con formato a número
   const parseNumber = (value: string): number => {
-    const cleaned = value.replace(/\./g, '');
-    return parseInt(cleaned) || 0;
+    // Remover todos los puntos (separadores de miles) y espacios
+    const cleaned = value.replace(/\./g, '').replace(/\s/g, '');
+    // Usar parseFloat para manejar números grandes correctamente
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : Math.round(parsed);
   };
 
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function SectionMaterials({ items, onChange }: SectionMaterialsPr
     setUnitCostInputs({ ...unitCostInputs, [newIndex]: '' });
   };
 
-  const updateItem = async (index: number, updates: Partial<QuoteItemMaterial>) => {
+  const updateItem = async (index: number, updates: Partial<QuoteItemMaterial>, saveToCatalog: boolean = false) => {
     const updated = [...items];
     const item = { ...updated[index], ...updates };
 
@@ -67,17 +70,29 @@ export default function SectionMaterials({ items, onChange }: SectionMaterialsPr
     updated[index] = item;
     onChange(updated);
 
-    // Si se completó un material manualmente (tiene item, unidad y unitCost), agregarlo al catálogo si no existe
-    if (item.item && item.unidad && item.unitCost > 0) {
+    // Solo guardar en catálogo si se solicita explícitamente (onBlur) y se cumplen las condiciones
+    if (saveToCatalog && item.item && item.unidad && item.unitCost > 0) {
       const existsInCatalog = materialsCatalog.some(cat => cat.name.toLowerCase() === item.item.toLowerCase());
       if (!existsInCatalog) {
+        // Asegurar que el costo se guarde correctamente
+        const defaultCost = item.unitCost !== undefined && item.unitCost !== null 
+          ? parseFloat(item.unitCost.toString()) 
+          : 0;
+        
         const newCatalogItem: MaterialCatalogItem = {
           id: Date.now().toString(),
           name: item.item,
           unidad: item.unidad,
+          defaultCost: defaultCost, // Agregar el costo unitario como defaultCost
           defaultMermaPct: item.mermaPct || 5,
           category: ''
         };
+        console.log('[SectionMaterials] Guardando nuevo material en catálogo:', {
+          ...newCatalogItem,
+          originalUnitCost: item.unitCost,
+          type: typeof item.unitCost,
+          parsedDefaultCost: defaultCost
+        });
         const updatedCatalog = [...materialsCatalog, newCatalogItem];
         setMaterialsCatalog(updatedCatalog);
         try {
@@ -187,12 +202,17 @@ export default function SectionMaterials({ items, onChange }: SectionMaterialsPr
                         const formatted = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                         setUnitCostInputs({ ...unitCostInputs, [index]: formatted });
                         const numericValue = parseNumber(inputValue);
-                        updateItem(index, { unitCost: numericValue });
+                        updateItem(index, { unitCost: numericValue }, false); // No guardar en catálogo todavía
                       }}
                       onBlur={(e) => {
                         const numericValue = parseNumber(e.target.value);
                         if (numericValue === 0) {
                           setUnitCostInputs({ ...unitCostInputs, [index]: '' });
+                        }
+                        // Guardar en catálogo cuando se completa el costo unitario
+                        const item = items[index];
+                        if (item && item.item && item.item.trim().length > 0 && item.unidad && numericValue > 0) {
+                          updateItem(index, { unitCost: numericValue }, true); // Guardar en catálogo
                         }
                       }}
                       placeholder="0"

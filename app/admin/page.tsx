@@ -193,9 +193,18 @@ export default function AdminPage() {
       setSelectedMemberRole('user');
       setShowAddMember(false);
       await loadData(); // Recargar datos generales
+      alert('Miembro agregado exitosamente');
     } catch (error: any) {
-      console.error('Error adding member:', error);
-      alert(error.message || 'Error al agregar el miembro');
+      console.error('Error adding member:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error: error,
+      });
+      
+      const errorMessage = error?.message || 'Error desconocido al agregar el miembro';
+      alert(errorMessage);
     }
   };
 

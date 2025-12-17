@@ -351,21 +351,115 @@ export async function addUserToTenant(
 ): Promise<void> {
   try {
     const supabaseClient = getSupabaseClient();
-    const { error } = await supabaseClient
+    
+    // Verificar que el usuario esté autenticado
+    const { data: { user: currentUser }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !currentUser) {
+      throw new Error('Usuario no autenticado. Debes iniciar sesión para agregar miembros.');
+    }
+
+    // Verificar que el tenant existe
+    const { data: tenant, error: tenantError } = await supabaseClient
+      .from('tenants')
+      .select('id, created_by')
+      .eq('id', tenantId)
+      .single();
+
+    if (tenantError || !tenant) {
+      throw new Error(`No se encontró el tenant con ID: ${tenantId}`);
+    }
+
+    // Verificar que el usuario a agregar existe
+    const { data: userToAdd, error: userToAddError } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (userToAddError || !userToAdd) {
+      throw new Error(`No se encontró el usuario con ID: ${userId}`);
+    }
+
+    // Verificar si ya existe un membership
+    const { data: existingMembership, error: checkError } = await supabaseClient
+      .from('memberships')
+      .select('id, role')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.warn('[addUserToTenant] Error verificando membership existente:', {
+        message: checkError.message,
+        code: checkError.code,
+        details: checkError.details,
+      });
+    }
+
+    if (existingMembership) {
+      throw new Error(`El usuario ya es miembro de esta empresa con el rol: ${existingMembership.role || 'desconocido'}`);
+    }
+
+    // Insertar el membership
+    const { data, error } = await supabaseClient
       .from('memberships')
       .insert({
         tenant_id: tenantId,
         user_id: userId,
         role,
-      });
+      })
+      .select('id')
+      .single();
 
     if (error) {
-      console.error('[addUserToTenant] Error:', error);
+      // Logging mejorado para ver el error completo
+      const errorInfo = {
+        message: error.message || 'Sin mensaje',
+        code: error.code || 'Sin código',
+        details: error.details || 'Sin detalles',
+        hint: error.hint || 'Sin hint',
+        statusCode: (error as any).statusCode || 'Sin statusCode',
+        statusText: (error as any).statusText || 'Sin statusText',
+      };
+      
+      console.error('[addUserToTenant] Error completo:', errorInfo);
+      console.error('[addUserToTenant] Error objeto completo:', error);
+      console.error('[addUserToTenant] Error string:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      
+      // Mensajes de error más descriptivos
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy')) {
+        throw new Error('No tienes permisos para agregar miembros a esta empresa. Verifica que seas super admin o admin/owner del tenant.');
+      } else if (error.code === '23505' || error.message?.includes('unique constraint') || error.message?.includes('duplicate key')) {
+        throw new Error('El usuario ya es miembro de esta empresa.');
+      } else if (error.code === '23503' || error.message?.includes('foreign key')) {
+        throw new Error('El tenant o usuario especificado no existe.');
+      } else {
+        const errorMsg = error.message || `Error desconocido (código: ${error.code || 'N/A'})`;
+        throw new Error(`Error al agregar miembro: ${errorMsg}`);
+      }
+    }
+
+    if (!data) {
+      throw new Error('No se pudo crear el membership. No se recibió confirmación del servidor.');
+    }
+  } catch (error: any) {
+    console.error('[addUserToTenant] Error capturado:', {
+      message: error?.message || 'Error desconocido',
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      stack: error?.stack,
+      error: error,
+    });
+    
+    // Si el error ya tiene un mensaje descriptivo, lanzarlo tal cual
+    if (error?.message && typeof error.message === 'string') {
       throw error;
     }
-  } catch (error) {
-    console.error('[addUserToTenant] Error:', error);
-    throw error;
+    
+    // Si no, crear un error con mensaje genérico
+    throw new Error(error?.message || 'Error desconocido al agregar miembro a la empresa');
   }
 }
 

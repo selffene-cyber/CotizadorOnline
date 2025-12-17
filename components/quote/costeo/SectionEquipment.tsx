@@ -3,7 +3,7 @@
 // Sección de Equipos/Herramientas
 import { useState, useEffect } from 'react';
 import { QuoteItemEquipment } from '@/types';
-import { getEquipmentCatalog, saveEquipmentCatalog } from '@/firebase/catalogs';
+import { getEquipmentCatalog, saveEquipmentCatalog } from '@/supabase/catalogs';
 import { EquipmentCatalogItem } from '@/types';
 import Button from '@/components/ui/Button';
 import { ALL_UNITS } from '@/utils/units';
@@ -62,7 +62,7 @@ export default function SectionEquipment({
     setRateInputs({ ...rateInputs, [newIndex]: '' });
   };
 
-  const updateItem = async (index: number, updates: Partial<QuoteItemEquipment>) => {
+  const updateItem = async (index: number, updates: Partial<QuoteItemEquipment>, saveToCatalog: boolean = false) => {
     const updated = [...items];
     const item = { ...updated[index], ...updates };
     
@@ -72,13 +72,13 @@ export default function SectionEquipment({
     updated[index] = item;
     onChange(updated);
 
-    // Si se completó un equipo manualmente (tiene equipment, unit y rate), agregarlo al catálogo si no existe
-    if (item.equipment && item.unit && item.rate > 0) {
-      const existsInCatalog = equipmentCatalog.some(cat => cat.name.toLowerCase() === item.equipment.toLowerCase());
+    // Solo guardar en catálogo si se solicita explícitamente (onBlur) y se cumplen las condiciones
+    if (saveToCatalog && item.equipment && item.equipment.trim().length > 0 && item.unit && item.rate > 0) {
+      const existsInCatalog = equipmentCatalog.some(cat => cat.name.toLowerCase() === item.equipment.toLowerCase().trim());
       if (!existsInCatalog) {
         const newCatalogItem: EquipmentCatalogItem = {
           id: Date.now().toString(),
-          name: item.equipment,
+          name: item.equipment.trim(),
           unit: item.unit,
           defaultRate: item.rate,
           category: ''
@@ -105,7 +105,7 @@ export default function SectionEquipment({
       equipment: catalogItem.name,
       unit: catalogItem.unit,
       rate: catalogItem.defaultRate || 0,
-    });
+    }, false); // No guardar en catálogo porque ya existe
   };
 
   const applyPercentageMO = () => {
@@ -200,7 +200,13 @@ export default function SectionEquipment({
                       <input
                         type="text"
                         value={item.equipment}
-                        onChange={(e) => updateItem(index, { equipment: e.target.value })}
+                        onChange={(e) => updateItem(index, { equipment: e.target.value }, false)}
+                        onBlur={() => {
+                          // Guardar en catálogo solo cuando el usuario termine de escribir
+                          if (item.equipment && item.equipment.trim().length > 0 && item.unit && item.rate > 0) {
+                            updateItem(index, {}, true);
+                          }
+                        }}
                         placeholder="Nombre del equipo"
                         className="w-full px-2 py-1 border rounded"
                       />
@@ -209,7 +215,7 @@ export default function SectionEquipment({
                   <td className="px-4 py-2">
                     <select
                       value={item.unit}
-                      onChange={(e) => updateItem(index, { unit: e.target.value as 'día' | 'hora' })}
+                      onChange={(e) => updateItem(index, { unit: e.target.value as 'día' | 'hora' }, false)}
                       className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-400 transition-all"
                     >
                       {ALL_UNITS.map((unit) => (
@@ -223,7 +229,7 @@ export default function SectionEquipment({
                     <input
                       type="number"
                       value={item.quantity || 0}
-                      onChange={(e) => updateItem(index, { quantity: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => updateItem(index, { quantity: parseFloat(e.target.value) || 0 }, false)}
                       className="w-24 px-2 py-1 border rounded"
                       min="0"
                       step="0.01"
@@ -238,12 +244,16 @@ export default function SectionEquipment({
                         const formatted = inputValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                         setRateInputs({ ...rateInputs, [index]: formatted });
                         const numericValue = parseNumber(inputValue);
-                        updateItem(index, { rate: numericValue });
+                        updateItem(index, { rate: numericValue }, false);
                       }}
                       onBlur={(e) => {
                         const numericValue = parseNumber(e.target.value);
                         if (numericValue === 0) {
                           setRateInputs({ ...rateInputs, [index]: '' });
+                        }
+                        // Guardar en catálogo cuando se completa el rate
+                        if (item.equipment && item.equipment.trim().length > 0 && item.unit && numericValue > 0) {
+                          updateItem(index, { rate: numericValue }, true);
                         }
                       }}
                       placeholder="0"
