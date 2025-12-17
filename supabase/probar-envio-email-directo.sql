@@ -4,7 +4,7 @@
 
 DO $$
 DECLARE
-  test_email TEXT := 'TU-EMAIL@ejemplo.com';  -- <<<<<<< CAMBIA ESTO A TU EMAIL
+  test_email TEXT := 'selffene@gmail.com';  -- <<<<<<< CAMBIA ESTO A TU EMAIL
   test_result TEXT;
   api_key TEXT;
 BEGIN
