@@ -134,18 +134,24 @@ export default function TenantSlugPage() {
 
   // Si tiene acceso, redirigir al dashboard (el contexto del tenant ya está configurado por el middleware)
   useEffect(() => {
-    if (hasAccess && tenant) {
+    if (hasAccess && tenant && !loading && !checkingAccess) {
       // El middleware ya estableció la cookie del tenant, así que podemos ir al dashboard normal
       router.replace('/dashboard');
     }
-  }, [hasAccess, tenant, router]);
+  }, [hasAccess, tenant, loading, checkingAccess, router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Redirigiendo...</p>
+  // Si tiene acceso, mostrar loading mientras redirige
+  if (hasAccess && tenant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirigiendo...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Fallback: no debería llegar aquí, pero por si acaso
+  return null;
 }
