@@ -70,18 +70,33 @@ export default function SectionGGUtilidad({
       return;
     }
     
-    // Aplicar automáticamente el mínimo si es menor
-    if (numValue < utilityMin) {
-      const validatedValue = utilityMin;
-      setUtilityInput(validatedValue.toString());
-      onChange(ggPercentage, validatedValue);
-      setUtilityError(`Se ajustó al mínimo de ${utilityMin}%`);
-      // Limpiar el error después de 3 segundos
+    // Validar rango 0-100%
+    if (numValue < 0) {
+      setUtilityInput('0');
+      onChange(ggPercentage, 0);
+      setUtilityError('El valor mínimo es 0%');
       setTimeout(() => setUtilityError(''), 3000);
+      return;
+    }
+    
+    if (numValue > 100) {
+      setUtilityInput('100');
+      onChange(ggPercentage, 100);
+      setUtilityError('El valor máximo es 100%');
+      setTimeout(() => setUtilityError(''), 3000);
+      return;
+    }
+    
+    // Si está por debajo del mínimo recomendado, mostrar advertencia pero permitir
+    if (numValue < utilityMin) {
+      setUtilityError(`Advertencia: El mínimo recomendado es ${utilityMin}%. Puedes continuar con este valor.`);
+      setTimeout(() => setUtilityError(''), 5000);
     } else {
       setUtilityError('');
-      onChange(ggPercentage, numValue);
     }
+    
+    // Aplicar el valor (incluso si está por debajo del mínimo recomendado)
+    onChange(ggPercentage, numValue);
   };
 
   return (
@@ -137,14 +152,14 @@ export default function SectionGGUtilidad({
             </label>
             <Tooltip 
               id="utilidad-tooltip" 
-              content="La Utilidad es el margen de ganancia que se aplica sobre el Costo Total. Se calcula como: Precio Neto = Costo Total × (1 + Utilidad%). Un rango típico es 45-65%, pero puede variar según el proyecto y mercado."
+              content="La Utilidad es el margen de ganancia que se aplica sobre el Costo Total. Se calcula como: Precio Neto = Costo Total × (1 + Utilidad%). Puedes ingresar cualquier valor entre 0% y 100% según estimes conveniente. Un rango típico recomendado es 45-65%."
             >
               <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
             </Tooltip>
           </div>
           <div className="mb-2">
             <p className="text-sm text-gray-500 mb-1">
-              Rango sugerido: 45% - 65% | Mínimo recomendado: {utilityMin}%
+              Rango permitido: 0% - 100% | Rango sugerido: 45% - 65% | Mínimo recomendado: {utilityMin}%
             </p>
           </div>
           <Input
