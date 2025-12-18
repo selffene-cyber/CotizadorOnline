@@ -114,7 +114,7 @@ export default function WizardStep1Client({ clientId, onNext }: WizardStep1Clien
       });
       await loadClients();
       const newClient = await getClientByRUT(formData.rut.replace(/[.\-]/g, ''));
-      if (newClient) {
+      if (newClient && newClient.id) {
         setSelectedClient(newClient);
         setShowNewForm(false);
         setErrors({});
