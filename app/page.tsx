@@ -12,6 +12,7 @@ function HomeContent() {
 
   useEffect(() => {
     // PRIORIDAD 1: Si hay un código de OAuth en la URL, redirigir inmediatamente al callback
+    // Esto es crítico porque Supabase a veces redirige a la raíz en lugar de /auth/callback
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     
@@ -24,8 +25,10 @@ function HomeContent() {
       if (errorDescription) params.set('error_description', errorDescription);
       
       // Redirigir inmediatamente sin esperar nada más
-      console.log('[Home] Detectado código OAuth, redirigiendo a /auth/callback');
-      router.replace(`/auth/callback?${params.toString()}`);
+      console.log('[Home] Detectado código OAuth en raíz, redirigiendo a /auth/callback', { code: code ? 'presente' : 'ausente', error });
+      
+      // Usar window.location para redirección inmediata (más confiable que router)
+      window.location.href = `/auth/callback?${params.toString()}`;
       return;
     }
 
