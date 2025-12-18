@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/lib/supabase-auth-context';
-import { getAllTenants, getTenantMembers, type Tenant } from '@/supabase/tenants';
+import { getTenantBySlug, getTenantMembers, type Tenant } from '@/supabase/tenants';
 import Button from '@/components/ui/Button';
 
 export default function TenantSlugPage() {
@@ -27,8 +27,7 @@ export default function TenantSlugPage() {
     const loadTenant = async () => {
       try {
         setLoading(true);
-        const tenants = await getAllTenants();
-        const foundTenant = tenants.find((t) => t.slug === slug);
+        const foundTenant = await getTenantBySlug(slug);
 
         if (!foundTenant) {
           setTenant(null);
@@ -150,4 +149,3 @@ export default function TenantSlugPage() {
     </div>
   );
 }
-

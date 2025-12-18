@@ -138,6 +138,41 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
 }
 
 /**
+ * Obtener un tenant por slug
+ * Esta función permite a cualquier usuario buscar un tenant por slug
+ * (necesario para acceder a rutas como /mic)
+ */
+export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
+      .from('tenants')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[getTenantBySlug] Error:', error);
+      // Si es un error de permisos RLS, intentar con una consulta más permisiva
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy')) {
+        console.warn('[getTenantBySlug] Error de permisos RLS. Verifica las políticas en Supabase.');
+      }
+      return null;
+    }
+
+    if (!data) {
+      console.log('[getTenantBySlug] No se encontró tenant con slug:', slug);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('[getTenantBySlug] Error:', error);
+    return null;
+  }
+}
+
+/**
  * Crear un nuevo tenant
  */
 export async function createTenant(
