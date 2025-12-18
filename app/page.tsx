@@ -28,7 +28,8 @@ function HomeContent() {
       console.log('[Home] Detectado código OAuth en raíz, redirigiendo a /auth/callback', { code: code ? 'presente' : 'ausente', error });
       
       // Usar window.location para redirección inmediata (más confiable que router)
-      window.location.href = `/auth/callback?${params.toString()}`;
+      // Usar replace para no dejar historial
+      window.location.replace(`/auth/callback?${params.toString()}`);
       return;
     }
 
@@ -56,6 +57,25 @@ function HomeContent() {
 }
 
 export default function Home() {
+  // Script inline para detectar código OAuth ANTES de que React se monte
+  // Esto asegura que la redirección ocurra lo más rápido posible
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const error = urlParams.get('error');
+    
+    if (code || error) {
+      const params = new URLSearchParams();
+      if (code) params.set('code', code);
+      if (error) params.set('error', error);
+      const errorDescription = urlParams.get('error_description');
+      if (errorDescription) params.set('error_description', errorDescription);
+      
+      console.log('[Home] Script inline detectó código OAuth, redirigiendo inmediatamente');
+      window.location.replace(`/auth/callback?${params.toString()}`);
+    }
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
