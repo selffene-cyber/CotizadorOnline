@@ -134,11 +134,15 @@ export default function TenantSlugPage() {
 
   // Si tiene acceso, redirigir al dashboard (el contexto del tenant ya está configurado por el middleware)
   useEffect(() => {
-    if (hasAccess && tenant && !loading && !checkingAccess) {
+    if (hasAccess && tenant && !loading && !checkingAccess && !authLoading) {
       // El middleware ya estableció la cookie del tenant, así que podemos ir al dashboard normal
-      router.replace('/dashboard');
+      // Usar setTimeout para evitar problemas de hidratación
+      const timer = setTimeout(() => {
+        router.replace('/dashboard');
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [hasAccess, tenant, loading, checkingAccess, router]);
+  }, [hasAccess, tenant, loading, checkingAccess, authLoading, router]);
 
   // Si tiene acceso, mostrar loading mientras redirige
   if (hasAccess && tenant) {
