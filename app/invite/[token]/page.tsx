@@ -47,7 +47,7 @@ export default function InvitePage() {
   }, [token]);
 
   const handleAccept = async () => {
-    if (!user || !invitation) return;
+    if (!user || !invitation || !token) return;
 
     setProcessing(true);
     setError(null);
@@ -65,6 +65,8 @@ export default function InvitePage() {
   };
 
   const handleReject = async () => {
+    if (!token) return;
+    
     if (!confirm('¿Estás seguro de que quieres rechazar esta invitación?')) {
       return;
     }
@@ -119,7 +121,7 @@ export default function InvitePage() {
             <p className="text-gray-600 mb-6">
               Necesitas iniciar sesión para aceptar esta invitación.
             </p>
-            <Button onClick={() => router.push(`/login?redirect=/invite/${token}`)}>
+            <Button onClick={() => router.push(`/login?redirect=/invite/${token || ''}`)}>
               Iniciar Sesión
             </Button>
           </div>
