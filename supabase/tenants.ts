@@ -145,6 +145,9 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
 export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
   try {
     const supabaseClient = getSupabaseClient();
+    
+    console.log('[getTenantBySlug] Buscando tenant con slug:', slug);
+    
     const { data, error } = await supabaseClient
       .from('tenants')
       .select('*')
@@ -152,10 +155,16 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
       .maybeSingle();
 
     if (error) {
-      console.error('[getTenantBySlug] Error:', error);
-      // Si es un error de permisos RLS, intentar con una consulta más permisiva
+      console.error('[getTenantBySlug] Error de Supabase:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      
+      // Si es un error de permisos RLS, informar claramente
       if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy')) {
-        console.warn('[getTenantBySlug] Error de permisos RLS. Verifica las políticas en Supabase.');
+        console.error('[getTenantBySlug] ERROR DE PERMISOS RLS. Ejecuta el script fix-tenant-slug-rls.sql en Supabase.');
       }
       return null;
     }
@@ -165,9 +174,10 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
       return null;
     }
 
+    console.log('[getTenantBySlug] Tenant encontrado:', { id: data.id, name: data.name, slug: data.slug });
     return data;
   } catch (error) {
-    console.error('[getTenantBySlug] Error:', error);
+    console.error('[getTenantBySlug] Error inesperado:', error);
     return null;
   }
 }
