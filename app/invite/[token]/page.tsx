@@ -16,7 +16,9 @@ export default function InvitePage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const token = params?.token as string;
+  // Decodificar el token de la URL (por si viene codificado)
+  const rawToken = params?.token as string;
+  const token = rawToken ? decodeURIComponent(rawToken) : null;
 
   useEffect(() => {
     if (!token) {

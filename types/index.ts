@@ -266,3 +266,124 @@ export interface CompanySettings {
   companyLogo: string; // Base64 o URL del logo
 }
 
+// ===== PLANIFICACIÓN (GANTT) =====
+export interface GanttProject {
+  id?: string;
+  tenantId: string;
+  quoteId: string;
+  name: string;
+  baselineStart?: Date | string;
+  baselineEnd?: Date | string;
+  createdBy?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface GanttTask {
+  id?: string;
+  projectId: string;
+  name: string;
+  wbsOrder: number;
+  resource?: string;
+  startPlan?: Date | string;
+  endPlan?: Date | string;
+  startActual?: Date | string;
+  endActual?: Date | string;
+  progress: number; // 0-100
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface GanttDependency {
+  id?: string;
+  projectId: string;
+  predTaskId: string; // Predecesor (predecessor)
+  succTaskId: string; // Sucesor (successor)
+  type: 'FS'; // Finish-to-Start (por ahora solo este tipo)
+  lagDays: number; // Días de retraso/adelanto
+  createdAt?: Date | string;
+}
+
+// DTOs para creación/actualización
+export interface CreateGanttProjectDTO {
+  quoteId: string;
+  name?: string; // Si no se proporciona, se genera automáticamente
+  baselineStart?: Date | string;
+  baselineEnd?: Date | string;
+}
+
+export interface UpdateGanttProjectDTO {
+  name?: string;
+  baselineStart?: Date | string;
+  baselineEnd?: Date | string;
+}
+
+export interface CreateGanttTaskDTO {
+  projectId: string;
+  name: string;
+  wbsOrder?: number;
+  resource?: string;
+  startPlan?: Date | string;
+  endPlan?: Date | string;
+  startActual?: Date | string;
+  endActual?: Date | string;
+  progress?: number;
+}
+
+export interface UpdateGanttTaskDTO {
+  name?: string;
+  wbsOrder?: number;
+  resource?: string;
+  startPlan?: Date | string;
+  endPlan?: Date | string;
+  startActual?: Date | string;
+  endActual?: Date | string;
+  progress?: number;
+}
+
+export interface CreateGanttDependencyDTO {
+  projectId: string;
+  predTaskId: string;
+  succTaskId: string;
+  type?: 'FS';
+  lagDays?: number;
+}
+
+// Helper para calcular duración en días
+export function computeTaskDurationDays(
+  start: Date | string | undefined,
+  end: Date | string | undefined
+): number {
+  if (!start || !end) return 0;
+  
+  const startDate = typeof start === 'string' ? new Date(start) : start;
+  const endDate = typeof end === 'string' ? new Date(end) : end;
+  
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
+  
+  const diffTime = endDate.getTime() - startDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return Math.max(1, diffDays); // Mínimo 1 día
+}
+
+// Helper para calcular avance ponderado del proyecto
+export function computeProjectProgressWeighted(tasks: GanttTask[]): number {
+  if (tasks.length === 0) return 0;
+  
+  let totalWeightedProgress = 0;
+  let totalWeight = 0;
+  
+  for (const task of tasks) {
+    const durationDays = computeTaskDurationDays(task.startPlan, task.endPlan);
+    const weight = Math.max(1, durationDays); // Mínimo peso de 1
+    
+    totalWeightedProgress += task.progress * weight;
+    totalWeight += weight;
+  }
+  
+  if (totalWeight === 0) return 0;
+  
+  return Math.round((totalWeightedProgress / totalWeight) * 100) / 100;
+}
+

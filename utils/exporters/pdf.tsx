@@ -393,9 +393,10 @@ interface PDFDocumentProps {
     options?: PDFExportOptions;
     costings?: Costing[]; // Costings asociados para mostrar detalles
     companySettings?: CompanySettings | null; // Configuración de la empresa
+    ganttImageDataUrl?: string; // Imagen del Gantt en base64 (opcional)
 }
 
-const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costings = [], companySettings = null }) => {
+const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costings = [], companySettings = null, ganttImageDataUrl }) => {
     const opts: PDFExportOptions = options || {
         includeScope: true,
         includeExclusions: true,
@@ -774,6 +775,30 @@ const PDFDocument: React.FC<PDFDocumentProps> = ({ quote, client, options, costi
                             )}
                         </View>
                     </View>
+
+                    {/* Planificación (Gantt) */}
+                    {ganttImageDataUrl && (
+                        <View style={{ marginTop: 15, marginBottom: 10 }}>
+                            <Text style={[styles.subtitle, { marginBottom: 8 }]}>Planificación del Proyecto (Gantt)</Text>
+                            <View style={{ 
+                                border: '1px solid #e5e7eb', 
+                                borderRadius: 4, 
+                                padding: 8,
+                                backgroundColor: '#f9fafb',
+                                maxWidth: '100%',
+                            }}>
+                                <Image
+                                    src={ganttImageDataUrl}
+                                    style={{ 
+                                        width: '100%', 
+                                        maxWidth: 500,
+                                        height: 'auto',
+                                        objectFit: 'contain',
+                                    }}
+                                />
+                            </View>
+                        </View>
+                    )}
 
                     {/* Pie de página con Nombre del Documento Centrado */}
                     <View fixed style={{ position: 'absolute', bottom: 20, left: 30, right: 30, justifyContent: 'center', alignItems: 'center' }}>

@@ -16,9 +16,10 @@ import { getCompanySettings } from '@/supabase/settings';
 interface ExportButtonsProps {
   quote: Quote;
   client: Client | null;
+  ganttImageDataUrl?: string; // Imagen del Gantt en base64 (opcional)
 }
 
-export default function ExportButtons({ quote, client }: ExportButtonsProps) {
+export default function ExportButtons({ quote, client, ganttImageDataUrl }: ExportButtonsProps) {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState<PDFExportOptions | null>(null);
@@ -102,7 +103,7 @@ export default function ExportButtons({ quote, client }: ExportButtonsProps) {
     
     try {
       const { pdf } = await import('@react-pdf/renderer');
-      const blob = await pdf(<PDFDocument quote={quote} client={client} options={exportOptions || undefined} costings={costings} companySettings={companySettings} />).toBlob();
+      const blob = await pdf(<PDFDocument quote={quote} client={client} options={exportOptions || undefined} costings={costings} companySettings={companySettings} ganttImageDataUrl={ganttImageDataUrl} />).toBlob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -209,7 +210,7 @@ export default function ExportButtons({ quote, client }: ExportButtonsProps) {
         </div>
         <div className="flex-1 overflow-hidden">
           <PDFViewer width="100%" height="100%">
-            <PDFDocument quote={quote} client={client} options={exportOptions || undefined} costings={costings} companySettings={companySettings} />
+            <PDFDocument quote={quote} client={client} options={exportOptions || undefined} costings={costings} companySettings={companySettings} ganttImageDataUrl={ganttImageDataUrl} />
           </PDFViewer>
         </div>
       </div>

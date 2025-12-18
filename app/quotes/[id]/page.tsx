@@ -480,6 +480,9 @@ export default function QuoteDetailPage() {
               <Button variant="outline" onClick={() => router.push(`/quotes/${quote.id}/items`)}>
                 Items de Cotización
               </Button>
+              <Button variant="outline" onClick={() => router.push(`/quotes/${quote.id}/planning`)}>
+                Planificación (Gantt)
+              </Button>
               <Button variant="outline" onClick={handleDuplicate}>
                 Duplicar
               </Button>

@@ -8,11 +8,28 @@ export async function GET(request: Request) {
   const error = requestUrl.searchParams.get('error');
   const errorDescription = requestUrl.searchParams.get('error_description');
 
+  // Obtener la URL base correcta (producción o desarrollo)
+  // Priorizar variables de entorno, luego headers de la petición, luego origin de la URL
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl && process.env.VERCEL_URL) {
+    siteUrl = `https://${process.env.VERCEL_URL}`;
+  }
+  if (!siteUrl) {
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    if (forwardedHost) {
+      siteUrl = `https://${forwardedHost}`;
+    }
+  }
+  if (!siteUrl) {
+    siteUrl = requestUrl.origin;
+  }
+
   console.log('[Auth Callback] Llamado con:', { 
     code: code ? 'presente' : 'ausente', 
     error,
     errorDescription,
     origin: requestUrl.origin,
+    siteUrl,
     pathname: requestUrl.pathname,
     allParams: Object.fromEntries(requestUrl.searchParams),
   });
@@ -61,7 +78,7 @@ export async function GET(request: Request) {
     const errorMessage = error === 'access_denied' || errorDescription?.includes('cancel') 
       ? 'Inicio de sesión cancelado' 
       : error;
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin));
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMessage)}`, siteUrl));
   }
 
   // Si no hay código, también puede ser una cancelación o error
@@ -104,7 +121,7 @@ export async function GET(request: Request) {
       console.warn('[Auth Callback] Error limpiando sesión:', err);
     }
     
-    return NextResponse.redirect(new URL('/login?error=no_code', requestUrl.origin));
+    return NextResponse.redirect(new URL('/login?error=no_code', siteUrl));
   }
 
   if (code) {
@@ -114,7 +131,7 @@ export async function GET(request: Request) {
 
       if (!supabaseUrl || !supabaseKey) {
         console.error('[Auth Callback] Variables de entorno de Supabase no configuradas');
-        return NextResponse.redirect(new URL('/login?error=config_error', requestUrl.origin));
+        return NextResponse.redirect(new URL('/login?error=config_error', siteUrl));
       }
 
       // Crear cliente de servidor con manejo de cookies
@@ -146,12 +163,12 @@ export async function GET(request: Request) {
 
       if (exchangeError) {
         console.error('[Auth Callback] Error intercambiando código:', exchangeError);
-        return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin));
+        return NextResponse.redirect(new URL('/login?error=auth_failed', siteUrl));
       }
 
       if (!data.user) {
         console.error('[Auth Callback] No se obtuvo usuario después del intercambio');
-        return NextResponse.redirect(new URL('/login?error=no_user', requestUrl.origin));
+        return NextResponse.redirect(new URL('/login?error=no_user', siteUrl));
       }
 
       // Verificar si el usuario tiene acceso aprobado
@@ -177,11 +194,11 @@ export async function GET(request: Request) {
         if (!membershipData) {
           // Usuario no tiene empresa, redirigir a onboarding
           console.log('[Auth Callback] Usuario no tiene empresa, redirigiendo a onboarding');
-          return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
+          return NextResponse.redirect(new URL('/onboarding', siteUrl));
         }
 
         // Usuario tiene empresa, redirigir al dashboard
-        return NextResponse.redirect(new URL('/dashboard', requestUrl.origin));
+        return NextResponse.redirect(new URL('/dashboard', siteUrl));
       }
 
       // Usuario no existe en public.users, verificar si tiene solicitud pendiente
@@ -195,15 +212,15 @@ export async function GET(request: Request) {
         if (requestData.status === 'approved') {
           // Solicitud aprobada pero usuario no creado (raro, pero puede pasar)
           console.log('[Auth Callback] Solicitud aprobada pero usuario no creado, redirigiendo a onboarding');
-          return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
+          return NextResponse.redirect(new URL('/onboarding', siteUrl));
         } else if (requestData.status === 'pending') {
           // Solicitud pendiente, redirigir a página de espera
           console.log('[Auth Callback] Solicitud pendiente de aprobación');
-          return NextResponse.redirect(new URL('/auth/pending-approval', requestUrl.origin));
+          return NextResponse.redirect(new URL('/auth/pending-approval', siteUrl));
         } else if (requestData.status === 'rejected') {
           // Solicitud rechazada, redirigir a login con mensaje
           console.log('[Auth Callback] Solicitud rechazada');
-          return NextResponse.redirect(new URL('/login?error=access_rejected', requestUrl.origin));
+          return NextResponse.redirect(new URL('/login?error=access_rejected', siteUrl));
         }
       }
 
@@ -243,15 +260,15 @@ export async function GET(request: Request) {
       }
 
       // Redirigir a página de espera de aprobación
-      return NextResponse.redirect(new URL('/auth/pending-approval', requestUrl.origin));
+      return NextResponse.redirect(new URL('/auth/pending-approval', siteUrl));
     } catch (err: any) {
       console.error('[Auth Callback] Error inesperado:', err);
-      return NextResponse.redirect(new URL('/login?error=unexpected_error', requestUrl.origin));
+      return NextResponse.redirect(new URL('/login?error=unexpected_error', siteUrl));
     }
   }
 
   // Si no hay código, redirigir al login
   console.warn('[Auth Callback] No se recibió código de autorización');
-  return NextResponse.redirect(new URL('/login?error=no_code', requestUrl.origin));
+  return NextResponse.redirect(new URL('/login?error=no_code', siteUrl));
 }
 

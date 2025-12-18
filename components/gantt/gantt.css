@@ -1,0 +1,86 @@
+/* Estilos para Frappe Gantt Chart */
+.gantt-container {
+  line-height: 14.5px;
+  position: relative;
+  overflow: auto;
+  font-size: 12px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.gantt-container .gantt {
+  user-select: none;
+  -webkit-user-select: none;
+  position: absolute;
+}
+
+.gantt-container .gantt .grid-background {
+  fill: none;
+}
+
+.gantt-container .gantt .grid-row {
+  fill: #fdfdfd;
+}
+
+.gantt-container .gantt .row-line {
+  stroke: #ebeff2;
+}
+
+.gantt-container .gantt .tick {
+  stroke: #f3f3f3;
+  stroke-width: 0.4;
+}
+
+.gantt-container .gantt .tick.thick {
+  stroke: #ededed;
+  stroke-width: 0.7;
+}
+
+.gantt-container .gantt .arrow {
+  fill: none;
+  stroke: #1f2937;
+  stroke-width: 1.5;
+}
+
+.gantt-container .gantt .bar-wrapper .bar {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 0;
+  transition: stroke-width 0.3s ease;
+}
+
+.gantt-container .gantt .bar-progress {
+  fill: #dbdbdb;
+  border-radius: 4px;
+}
+
+.gantt-container .gantt .bar-label {
+  fill: #171717;
+  dominant-baseline: central;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.gantt-container .gantt .bar-wrapper {
+  cursor: pointer;
+}
+
+.gantt-container .gantt .bar-wrapper .bar {
+  outline: 1px solid #c7c7c7;
+  border-radius: 3px;
+}
+
+.gantt-container .gantt .completed .bar {
+  fill: #10b981;
+}
+
+.gantt-container .gantt .in-progress .bar {
+  fill: #3b82f6;
+}
+
+.gantt-container .gantt .pending .bar {
+  fill: #94a3b8;
+}
+
+

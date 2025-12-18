@@ -33,8 +33,20 @@ export async function createInvitation(
   try {
     const supabaseClient = getSupabaseClient();
     
-    // Generar token único
-    const token = `${tenantId}-${email}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Generar token único seguro (sin caracteres especiales que puedan causar problemas en URLs)
+    // Usar formato UUID simple o token alfanumérico largo
+    let token: string;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      token = crypto.randomUUID();
+    } else {
+      // Fallback: generar token alfanumérico seguro (sin caracteres especiales)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 32; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      token = result;
+    }
     
     // Calcular fecha de expiración
     const expiresAt = new Date();
