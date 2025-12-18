@@ -230,12 +230,19 @@ export async function updateClient(clientId: string, clientData: Partial<Client>
     throw new Error('Supabase no está configurado');
   }
 
-  const { error } = await supabase
+  const supabaseClient = getSupabaseClient();
+  const rowData = toRow(clientData);
+  
+  // Asegurar que updated_at se actualice
+  rowData.updated_at = new Date().toISOString();
+
+  const { error } = await supabaseClient
     .from('clients')
-    .update(toRow(clientData))
+    .update(rowData)
     .eq('id', clientId);
 
   if (error) {
+    console.error('[updateClient] Error actualizando cliente:', error);
     throw new Error(`Error al actualizar cliente: ${error.message}`);
   }
 }
