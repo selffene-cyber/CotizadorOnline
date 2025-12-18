@@ -163,12 +163,12 @@ export async function GET(request: Request) {
 
       if (exchangeError) {
         console.error('[Auth Callback] Error intercambiando código:', exchangeError);
-        return NextResponse.redirect(new URL('/login?error=auth_failed', siteUrl));
+        return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin));
       }
 
       if (!data.user) {
         console.error('[Auth Callback] No se obtuvo usuario después del intercambio');
-        return NextResponse.redirect(new URL('/login?error=no_user', siteUrl));
+        return NextResponse.redirect(new URL('/login?error=no_user', requestUrl.origin));
       }
 
       // Verificar si el usuario tiene acceso aprobado
@@ -191,22 +191,19 @@ export async function GET(request: Request) {
           .limit(1)
           .single();
 
-        // Verificar si hay un redirect guardado (por ejemplo, de una invitación)
+        // Verificar si hay un redirect en los query params
         const redirectParam = requestUrl.searchParams.get('redirect');
-        let redirectPath = '/dashboard';
         
-        if (redirectParam) {
-          redirectPath = redirectParam;
-        }
-
         if (!membershipData) {
           // Usuario no tiene empresa, redirigir a onboarding
           console.log('[Auth Callback] Usuario no tiene empresa, redirigiendo a onboarding');
-          return NextResponse.redirect(new URL('/onboarding', siteUrl));
+          return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
         }
 
-        // Usuario tiene empresa, redirigir según el redirect o al dashboard
-        return NextResponse.redirect(new URL(redirectPath, siteUrl));
+        // Si hay un redirect, usarlo; de lo contrario, ir al dashboard
+        const redirectUrl = redirectParam || '/dashboard';
+        console.log('[Auth Callback] Redirigiendo a:', redirectUrl);
+        return NextResponse.redirect(new URL(redirectUrl, requestUrl.origin));
       }
 
       // Usuario no existe en public.users, verificar si tiene solicitud pendiente

@@ -11,7 +11,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Si hay un código de OAuth en la URL, redirigir al callback
+    // PRIORIDAD 1: Si hay un código de OAuth en la URL, redirigir inmediatamente al callback
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     
@@ -23,11 +23,13 @@ function HomeContent() {
       const errorDescription = searchParams.get('error_description');
       if (errorDescription) params.set('error_description', errorDescription);
       
+      // Redirigir inmediatamente sin esperar nada más
+      console.log('[Home] Detectado código OAuth, redirigiendo a /auth/callback');
       router.replace(`/auth/callback?${params.toString()}`);
       return;
     }
 
-    // Solo redirigir cuando la carga esté completa y tengamos una respuesta válida
+    // PRIORIDAD 2: Solo redirigir cuando la carga esté completa y tengamos una respuesta válida
     if (!loading) {
       // Si hay un usuario autenticado, ir al dashboard
       if (user) {

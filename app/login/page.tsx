@@ -78,14 +78,37 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
-      // Guardar el redirect en localStorage para usarlo después del callback
+      // Obtener el redirect URL
       const redirectUrl = getRedirectUrl();
-      if (redirectUrl && redirectUrl !== '/dashboard') {
-        localStorage.setItem('oauth_redirect', redirectUrl);
-      }
       
-      await signInWithGoogle();
+      // Pasar el redirect como query param en el redirectTo
+      // Supabase lo pasará de vuelta en el callback
+      const redirectTo = redirectUrl && redirectUrl !== '/dashboard' 
+        ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`
+        : `${window.location.origin}/auth/callback`;
+      
+      const supabase = (await import('@/supabase/config')).createSupabaseClient();
+      
+      console.log('[Login] Iniciando OAuth con redirectTo:', redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('[Login] Error en OAuth:', error);
+        throw new Error(error.message);
+      }
+
       // La redirección se manejará automáticamente por Supabase OAuth
+      console.log('[Login] OAuth iniciado correctamente');
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión con Google');
       setGoogleLoading(false);
