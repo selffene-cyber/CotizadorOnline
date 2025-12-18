@@ -21,7 +21,13 @@ export async function GET(request: Request) {
     }
   }
   if (!siteUrl) {
-    siteUrl = requestUrl.origin;
+    // Si requestUrl.origin contiene 0.0.0.0, reemplazarlo con localhost
+    const origin = requestUrl.origin;
+    if (origin.includes('0.0.0.0')) {
+      siteUrl = origin.replace('0.0.0.0', 'localhost');
+    } else {
+      siteUrl = origin;
+    }
   }
 
   console.log('[Auth Callback] Llamado con:', { 
@@ -163,12 +169,12 @@ export async function GET(request: Request) {
 
       if (exchangeError) {
         console.error('[Auth Callback] Error intercambiando código:', exchangeError);
-        return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin));
+        return NextResponse.redirect(new URL('/login?error=auth_failed', siteUrl));
       }
 
       if (!data.user) {
         console.error('[Auth Callback] No se obtuvo usuario después del intercambio');
-        return NextResponse.redirect(new URL('/login?error=no_user', requestUrl.origin));
+        return NextResponse.redirect(new URL('/login?error=no_user', siteUrl));
       }
 
       // Verificar si el usuario tiene acceso aprobado
@@ -197,13 +203,13 @@ export async function GET(request: Request) {
         if (!membershipData) {
           // Usuario no tiene empresa, redirigir a onboarding
           console.log('[Auth Callback] Usuario no tiene empresa, redirigiendo a onboarding');
-          return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
+          return NextResponse.redirect(new URL('/onboarding', siteUrl));
         }
 
         // Si hay un redirect, usarlo; de lo contrario, ir al dashboard
         const redirectUrl = redirectParam || '/dashboard';
         console.log('[Auth Callback] Redirigiendo a:', redirectUrl);
-        return NextResponse.redirect(new URL(redirectUrl, requestUrl.origin));
+        return NextResponse.redirect(new URL(redirectUrl, siteUrl));
       }
 
       // Usuario no existe en public.users, verificar si tiene solicitud pendiente
