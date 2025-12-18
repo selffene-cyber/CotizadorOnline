@@ -10,7 +10,7 @@ import Button from '@/components/ui/Button';
 export default function InvitePage() {
   const params = useParams();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -134,8 +134,11 @@ export default function InvitePage() {
     return null;
   }
 
-  // Verificar que el email del usuario coincida
-  if (user.email !== invitation.email) {
+  // Verificar que el email del usuario coincida (case-insensitive)
+  const userEmail = user.email?.toLowerCase().trim() || '';
+  const invitationEmail = invitation.email.toLowerCase().trim();
+  
+  if (userEmail !== invitationEmail) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
@@ -145,10 +148,29 @@ export default function InvitePage() {
             <p className="text-gray-600 mb-2">
               Esta invitación fue enviada a: <strong>{invitation.email}</strong>
             </p>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               Tu email actual es: <strong>{user.email}</strong>
             </p>
-            <Button onClick={() => router.push('/dashboard')}>Ir al Dashboard</Button>
+            <p className="text-sm text-gray-500 mb-6">
+              Por favor, cierra sesión e inicia sesión con el email correcto para aceptar esta invitación.
+            </p>
+            <div className="space-y-2">
+              <Button 
+                onClick={async () => {
+                  await signOut();
+                  router.push(`/login?redirect=/invite/${token}`);
+                }}
+                className="w-full"
+              >
+                Cerrar Sesión e Iniciar con Email Correcto
+              </Button>
+              <Button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
+              >
+                Ir al Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </div>

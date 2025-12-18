@@ -16,6 +16,15 @@ export default function LoginPage() {
   const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  // Obtener parámetro redirect de la URL
+  const getRedirectUrl = () => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      return searchParams.get('redirect') || '/dashboard';
+    }
+    return '/dashboard';
+  };
+
   // Verificar si hay un error en la URL (por ejemplo, de OAuth cancelado)
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -31,15 +40,21 @@ export default function LoginPage() {
         'unexpected_error': 'Error inesperado',
       };
       setError(errorMessages[errorParam] || errorParam);
-      // Limpiar la URL
-      router.replace('/login');
+      // Limpiar la URL pero mantener el redirect si existe
+      const redirect = searchParams.get('redirect');
+      if (redirect) {
+        router.replace(`/login?redirect=${encodeURIComponent(redirect)}`);
+      } else {
+        router.replace('/login');
+      }
     }
   }, [router]);
 
-  // Si el usuario ya está autenticado, redirigir al dashboard
+  // Si el usuario ya está autenticado, redirigir según el parámetro redirect
   useEffect(() => {
     if (!authLoading && user) {
-      router.push('/dashboard');
+      const redirectUrl = getRedirectUrl();
+      router.push(redirectUrl);
     }
   }, [user, authLoading, router]);
 
@@ -63,6 +78,12 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
+      // Guardar el redirect en localStorage para usarlo después del callback
+      const redirectUrl = getRedirectUrl();
+      if (redirectUrl && redirectUrl !== '/dashboard') {
+        localStorage.setItem('oauth_redirect', redirectUrl);
+      }
+      
       await signInWithGoogle();
       // La redirección se manejará automáticamente por Supabase OAuth
     } catch (err: any) {

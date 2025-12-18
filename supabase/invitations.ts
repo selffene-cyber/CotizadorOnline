@@ -183,14 +183,36 @@ export async function acceptInvitation(
     }
 
     // Verificar que el email del usuario coincida
-    const { data: user } = await supabaseClient
-      .from('users')
-      .select('email')
-      .eq('id', userId)
-      .single();
-
-    if (!user || user.email !== invitation.email) {
-      throw new Error('El email del usuario no coincide con la invitación');
+    // Primero intentar obtener el email del usuario autenticado de Supabase Auth
+    let userEmail: string | null = null;
+    
+    try {
+      const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+      if (authUser && authUser.email) {
+        userEmail = authUser.email.toLowerCase().trim();
+      }
+    } catch (authError) {
+      console.warn('[acceptInvitation] No se pudo obtener usuario de auth, intentando desde tabla users');
+    }
+    
+    // Si no se pudo obtener de auth, intentar desde la tabla users
+    if (!userEmail) {
+      const { data: user } = await supabaseClient
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single();
+      
+      if (user && user.email) {
+        userEmail = user.email.toLowerCase().trim();
+      }
+    }
+    
+    // Comparar emails (case-insensitive y sin espacios)
+    const invitationEmail = invitation.email.toLowerCase().trim();
+    
+    if (!userEmail || userEmail !== invitationEmail) {
+      throw new Error(`El email del usuario (${userEmail || 'no encontrado'}) no coincide con la invitación (${invitationEmail})`);
     }
 
     // Agregar usuario al tenant

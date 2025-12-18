@@ -1,15 +1,32 @@
 'use client';
 
 // Página principal - redirige según autenticación
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/supabase-auth-context';
 
-export default function Home() {
+function HomeContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Si hay un código de OAuth en la URL, redirigir al callback
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    
+    if (code || error) {
+      // Construir la URL del callback con todos los parámetros
+      const params = new URLSearchParams();
+      if (code) params.set('code', code);
+      if (error) params.set('error', error);
+      const errorDescription = searchParams.get('error_description');
+      if (errorDescription) params.set('error_description', errorDescription);
+      
+      router.replace(`/auth/callback?${params.toString()}`);
+      return;
+    }
+
     // Solo redirigir cuando la carga esté completa y tengamos una respuesta válida
     if (!loading) {
       // Si hay un usuario autenticado, ir al dashboard
@@ -20,7 +37,7 @@ export default function Home() {
         router.push('/login');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, searchParams]);
 
   // Mostrar loading mientras se verifica la autenticación
   return (
@@ -30,5 +47,20 @@ export default function Home() {
         <p className="mt-4 text-gray-600">Cargando...</p>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

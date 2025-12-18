@@ -191,14 +191,22 @@ export async function GET(request: Request) {
           .limit(1)
           .single();
 
+        // Verificar si hay un redirect guardado (por ejemplo, de una invitación)
+        const redirectParam = requestUrl.searchParams.get('redirect');
+        let redirectPath = '/dashboard';
+        
+        if (redirectParam) {
+          redirectPath = redirectParam;
+        }
+
         if (!membershipData) {
           // Usuario no tiene empresa, redirigir a onboarding
           console.log('[Auth Callback] Usuario no tiene empresa, redirigiendo a onboarding');
           return NextResponse.redirect(new URL('/onboarding', siteUrl));
         }
 
-        // Usuario tiene empresa, redirigir al dashboard
-        return NextResponse.redirect(new URL('/dashboard', siteUrl));
+        // Usuario tiene empresa, redirigir según el redirect o al dashboard
+        return NextResponse.redirect(new URL(redirectPath, siteUrl));
       }
 
       // Usuario no existe en public.users, verificar si tiene solicitud pendiente
