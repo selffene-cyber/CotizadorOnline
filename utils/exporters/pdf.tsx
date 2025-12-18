@@ -10,8 +10,11 @@ const parseHTMLToPDF = (html: string): React.ReactElement[] => {
 
     const elements: React.ReactElement[] = [];
 
+    // Reemplazar &nbsp; con espacios antes de procesar
+    let processedHtml = html.replace(/&nbsp;/gi, ' ');
+    
     // Remover espacios en blanco al inicio y final
-    const cleanHtml = html.trim();
+    const cleanHtml = processedHtml.trim();
 
     // Detectar si es una lista ordenada
     const olMatch = cleanHtml.match(/<ol[^>]*>([\s\S]*?)<\/ol>/);
@@ -24,6 +27,7 @@ const parseHTMLToPDF = (html: string): React.ReactElement[] => {
             const itemContent = item.replace(/<li[^>]*>|<\/li>/gi, '');
             // Remover todas las etiquetas HTML y normalizar espacios
             const itemText = itemContent
+                .replace(/&nbsp;/gi, ' ') // Reemplazar &nbsp; con espacios
                 .replace(/<br\s*\/?>/gi, '\n') // Convertir <br> a saltos de línea
                 .replace(/<[^>]+>/g, ' ') // Remover otras etiquetas HTML
                 .replace(/\s+/g, ' ') // Normalizar espacios múltiples
@@ -56,6 +60,7 @@ const parseHTMLToPDF = (html: string): React.ReactElement[] => {
             const itemContent = item.replace(/<li[^>]*>|<\/li>/gi, '');
             // Remover todas las etiquetas HTML y normalizar espacios
             const itemText = itemContent
+                .replace(/&nbsp;/gi, ' ') // Reemplazar &nbsp; con espacios
                 .replace(/<br\s*\/?>/gi, '\n') // Convertir <br> a saltos de línea
                 .replace(/<[^>]+>/g, ' ') // Remover otras etiquetas HTML
                 .replace(/\s+/g, ' ') // Normalizar espacios múltiples
@@ -81,7 +86,11 @@ const parseHTMLToPDF = (html: string): React.ReactElement[] => {
     const paragraphs = cleanHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/g) || [];
     if (paragraphs.length > 0) {
         paragraphs.forEach((para, index) => {
-            const paraText = para.replace(/<p[^>]*>|<\/p>/g, '').replace(/<[^>]+>/g, ' ').trim();
+            const paraText = para
+                .replace(/&nbsp;/gi, ' ') // Reemplazar &nbsp; con espacios
+                .replace(/<p[^>]*>|<\/p>/g, '')
+                .replace(/<[^>]+>/g, ' ')
+                .trim();
             if (paraText) {
                 elements.push(
                     <Text key={`para-${index}`} style={{ marginBottom: 6 }}>
@@ -95,6 +104,7 @@ const parseHTMLToPDF = (html: string): React.ReactElement[] => {
 
     // Si no hay etiquetas específicas, limpiar todo el HTML y mostrar como texto plano
     const plainText = cleanHtml
+        .replace(/&nbsp;/gi, ' ') // Reemplazar &nbsp; con espacios
         .replace(/<[^>]+>/g, ' ') // Remover todas las etiquetas HTML
         .replace(/\s+/g, ' ') // Normalizar espacios
         .trim();
