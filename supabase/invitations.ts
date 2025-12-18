@@ -134,14 +134,22 @@ export async function getTenantInvitations(tenantId: string): Promise<Invitation
 export async function getInvitationByToken(token: string): Promise<Invitation | null> {
   try {
     const supabaseClient = getSupabaseClient();
+    
+    // Usar maybeSingle() en lugar de single() para evitar error cuando no hay resultados
     const { data, error } = await supabaseClient
       .from('invitations')
       .select('*')
       .eq('token', token)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('[getInvitationByToken] Error:', error);
+      return null;
+    }
+
+    // Si no se encontró la invitación
+    if (!data) {
+      console.log('[getInvitationByToken] No se encontró invitación con token:', token);
       return null;
     }
 
