@@ -1,6 +1,4 @@
-// Funciones para gestión de invitaciones
-import { supabase, createSupabaseClient } from './config';
-import { sendInvitationEmail } from './email';
+import { api } from '@/lib/api-client';
 
 export interface Invitation {
   id: string;
@@ -15,14 +13,6 @@ export interface Invitation {
   updated_at: string;
 }
 
-// Helper para obtener el cliente correcto
-function getSupabaseClient() {
-  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
-}
-
-/**
- * Crear una invitación
- */
 export async function createInvitation(
   tenantId: string,
   email: string,
@@ -30,226 +20,41 @@ export async function createInvitation(
   invitedBy: string,
   expiresInDays: number = 7
 ): Promise<Invitation> {
-  try {
-    const supabaseClient = getSupabaseClient();
-    
-    // Generar token único
-    const token = `${tenantId}-${email}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    
-    // Calcular fecha de expiración
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-
-    const { data, error } = await supabaseClient
-      .from('invitations')
-      .insert({
-        tenant_id: tenantId,
-        email,
-        role,
-        token,
-        status: 'pending',
-        invited_by: invitedBy,
-        expires_at: expiresAt.toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[createInvitation] Error:', error);
-      throw error;
-    }
-
-    // Obtener información del tenant y del invitador para el email
-    try {
-      // Obtener nombre del tenant
-      const { data: tenantData } = await supabaseClient
-        .from('tenants')
-        .select('name')
-        .eq('id', tenantId)
-        .single();
-
-      // Obtener nombre del invitador
-      const { data: inviterData } = await supabaseClient
-        .from('users')
-        .select('display_name, email')
-        .eq('id', invitedBy)
-        .maybeSingle();
-
-      const tenantName = tenantData?.name || 'la empresa';
-      const inviterName = inviterData?.display_name || inviterData?.email || 'un administrador';
-
-      // Enviar email de invitación (no bloquea si falla)
-      await sendInvitationEmail(email, token, tenantName, role, inviterName);
-    } catch (emailError) {
-      console.warn('[createInvitation] Error enviando email (continuando):', emailError);
-      // No lanzar error, la invitación ya se creó
-    }
-
-    return data;
-  } catch (error) {
-    console.error('[createInvitation] Error:', error);
-    throw error;
-  }
+  const data = await api.invitations.create(tenantId, email, role, expiresInDays);
+  return data.invitation;
 }
 
-/**
- * Obtener invitaciones de un tenant
- */
 export async function getTenantInvitations(tenantId: string): Promise<Invitation[]> {
   try {
-    const supabaseClient = getSupabaseClient();
-    const { data, error } = await supabaseClient
-      .from('invitations')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[getTenantInvitations] Error:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('[getTenantInvitations] Error:', error);
+    const data = await api.invitations.getByTenant(tenantId);
+    return data.invitations || [];
+  } catch {
     return [];
   }
 }
 
-/**
- * Obtener invitación por token
- */
 export async function getInvitationByToken(token: string): Promise<Invitation | null> {
   try {
-    const supabaseClient = getSupabaseClient();
-    const { data, error } = await supabaseClient
-      .from('invitations')
-      .select('*')
-      .eq('token', token)
-      .single();
-
-    if (error) {
-      console.error('[getInvitationByToken] Error:', error);
-      return null;
-    }
-
-    // Verificar si está expirada
-    if (new Date(data.expires_at) < new Date()) {
-      // Actualizar estado a expirada
-      await supabaseClient
-        .from('invitations')
-        .update({ status: 'expired' })
-        .eq('id', data.id);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('[getInvitationByToken] Error:', error);
+    const data = await api.invitations.getByToken(token);
+    return data.invitation || null;
+  } catch {
     return null;
   }
 }
 
-/**
- * Aceptar una invitación
- */
-export async function acceptInvitation(
-  token: string,
-  userId: string
-): Promise<void> {
-  try {
-    const supabaseClient = getSupabaseClient();
-    
-    // Obtener la invitación
-    const invitation = await getInvitationByToken(token);
-    if (!invitation) {
-      throw new Error('Invitación no encontrada o expirada');
-    }
-
-    if (invitation.status !== 'pending') {
-      throw new Error('Esta invitación ya fue procesada');
-    }
-
-    // Verificar que el email del usuario coincida
-    const { data: user } = await supabaseClient
-      .from('users')
-      .select('email')
-      .eq('id', userId)
-      .single();
-
-    if (!user || user.email !== invitation.email) {
-      throw new Error('El email del usuario no coincide con la invitación');
-    }
-
-    // Agregar usuario al tenant
-    const { error: membershipError } = await supabaseClient
-      .from('memberships')
-      .insert({
-        tenant_id: invitation.tenant_id,
-        user_id: userId,
-        role: invitation.role,
-      });
-
-    if (membershipError) {
-      console.error('[acceptInvitation] Error creando membership:', membershipError);
-      throw membershipError;
-    }
-
-    // Actualizar estado de la invitación
-    const { error: updateError } = await supabaseClient
-      .from('invitations')
-      .update({ status: 'accepted' })
-      .eq('id', invitation.id);
-
-    if (updateError) {
-      console.error('[acceptInvitation] Error actualizando invitación:', updateError);
-      // No lanzar error, la membership ya se creó
-    }
-  } catch (error) {
-    console.error('[acceptInvitation] Error:', error);
-    throw error;
-  }
+export async function acceptInvitation(token: string, userId: string): Promise<void> {
+  const data = await api.invitations.getByToken(token);
+  if (!data.invitation) throw new Error('Invitación no encontrada o expirada');
+  await api.invitations.accept(data.invitation.id);
 }
 
-/**
- * Rechazar una invitación
- */
 export async function rejectInvitation(token: string): Promise<void> {
-  try {
-    const supabaseClient = getSupabaseClient();
-    const { error } = await supabaseClient
-      .from('invitations')
-      .update({ status: 'rejected' })
-      .eq('token', token);
-
-    if (error) {
-      console.error('[rejectInvitation] Error:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('[rejectInvitation] Error:', error);
-    throw error;
+  const data = await api.invitations.getByToken(token);
+  if (data.invitation) {
+    await api.invitations.reject(data.invitation.id);
   }
 }
 
-/**
- * Cancelar una invitación (solo para admins)
- */
 export async function cancelInvitation(invitationId: string): Promise<void> {
-  try {
-    const supabaseClient = getSupabaseClient();
-    const { error } = await supabaseClient
-      .from('invitations')
-      .delete()
-      .eq('id', invitationId);
-
-    if (error) {
-      console.error('[cancelInvitation] Error:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('[cancelInvitation] Error:', error);
-    throw error;
-  }
+  await api.invitations.cancel(invitationId);
 }
-

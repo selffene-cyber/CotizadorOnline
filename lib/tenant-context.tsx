@@ -1,11 +1,10 @@
 'use client';
 
-// Contexto para manejar el tenant actual
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { getAllTenants, getTenantById, type Tenant } from '@/supabase/tenants';
-import { getTenantMembers } from '@/supabase/tenants';
-import { useAuth } from './supabase-auth-context';
+import { api } from '@/lib/api-client';
+import type { Tenant } from '@/supabase/tenants';
+import { useAuth } from './jwt-auth-context';
 
 interface TenantContextType {
   currentTenant: Tenant | null;
@@ -36,14 +35,11 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const detectTenant = async () => {
       setLoading(true);
 
-      // Extraer slug de la URL
-      // Formato esperado: /{slug}/... o /{slug}
       const pathParts = pathname?.split('/').filter(Boolean) || [];
       const possibleSlug = pathParts[0];
 
-      // Rutas que no son tenants
-      const nonTenantRoutes = ['login', 'admin', 'dashboard', 'invite', 'api', '_next'];
-      
+      const nonTenantRoutes = ['login', 'admin', 'dashboard', 'invite', 'api', '_next', 'auth', 'onboarding'];
+
       if (!possibleSlug || nonTenantRoutes.includes(possibleSlug)) {
         setTenantSlug(null);
         setCurrentTenant(null);
@@ -54,32 +50,18 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // Buscar tenant por slug
-        const tenants = await getAllTenants();
-        const tenant = tenants.find((t) => t.slug === possibleSlug);
+        const data = await api.tenants.getMy();
+        const tenants = data.tenants || [];
+        const tenant = tenants.find((t: any) => t.slug === possibleSlug);
 
         if (tenant) {
           setTenantSlug(possibleSlug);
-          setCurrentTenant(tenant);
+          setCurrentTenant(tenant as Tenant);
 
-          // Verificar si el usuario es admin u owner de este tenant
-          if (user) {
-            try {
-              const members = await getTenantMembers(tenant.id);
-              const userMembership = members.find((m: any) => m.user_id === user.id);
-              
-              if (userMembership) {
-                setIsTenantAdmin(userMembership.role === 'admin' || userMembership.role === 'owner');
-                setIsTenantOwner(userMembership.role === 'owner');
-              } else {
-                setIsTenantAdmin(false);
-                setIsTenantOwner(false);
-              }
-            } catch (error) {
-              console.error('Error checking tenant membership:', error);
-              setIsTenantAdmin(false);
-              setIsTenantOwner(false);
-            }
+          const membershipRole = tenant.membership_role;
+          if (membershipRole) {
+            setIsTenantAdmin(membershipRole === 'admin' || membershipRole === 'owner');
+            setIsTenantOwner(membershipRole === 'owner');
           } else {
             setIsTenantAdmin(false);
             setIsTenantOwner(false);
@@ -101,7 +83,11 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    detectTenant();
+    if (user) {
+      detectTenant();
+    } else {
+      setLoading(false);
+    }
   }, [pathname, user]);
 
   return (
@@ -122,4 +108,3 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 export function useTenant() {
   return useContext(TenantContext);
 }
-

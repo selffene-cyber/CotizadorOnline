@@ -3,7 +3,7 @@
 // Página de Login
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/supabase-auth-context';
+import { useAuth } from '@/lib/jwt-auth-context';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
