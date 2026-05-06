@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/lib/supabase-auth-context";
+import { AuthProvider } from "@/lib/jwt-auth-context";
 import { TenantProvider } from "@/lib/tenant-context";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,45 +16,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Log para debugging (solo en servidor)
-  try {
-    console.log('[RootLayout] Renderizando layout en servidor');
-    // Verificar variables de entorno
-    const hasUrl = !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL);
-    const hasKey = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
-    console.log('[RootLayout] Variables de entorno:', { hasUrl, hasKey });
-  } catch (error) {
-    console.error('[RootLayout] Error verificando variables:', error);
-  }
-
-  // Obtener variables de entorno para inyectar en el cliente
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const githubClientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || '';
 
   return (
     <html lang="es">
       <head>
-        {/* Inyectar variables de entorno en el cliente */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               window.__ENV__ = {
-                NEXT_PUBLIC_SUPABASE_URL: ${JSON.stringify(supabaseUrl)},
-                NEXT_PUBLIC_SUPABASE_ANON_KEY: ${JSON.stringify(supabaseAnonKey)},
-                SUPABASE_URL: ${JSON.stringify(supabaseUrl)},
-                SUPABASE_ANON_KEY: ${JSON.stringify(supabaseAnonKey)}
+                NEXT_PUBLIC_API_URL: ${JSON.stringify(apiUrl)},
+                NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${JSON.stringify(googleClientId)},
+                NEXT_PUBLIC_GITHUB_CLIENT_ID: ${JSON.stringify(githubClientId)}
               };
             `,
           }}
         />
       </head>
-            <body className={inter.className}>
-              <AuthProvider>
-                <TenantProvider>
-                  {children}
-                </TenantProvider>
-              </AuthProvider>
-            </body>
+      <body className={inter.className}>
+        <AuthProvider>
+          <TenantProvider>
+            {children}
+          </TenantProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

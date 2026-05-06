@@ -3,7 +3,7 @@
 // Layout para el panel de administración
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/supabase-auth-context';
+import { useAuth } from '@/lib/jwt-auth-context';
 import { isSuperAdmin } from '@/supabase/admin';
 
 export default function AdminLayout({

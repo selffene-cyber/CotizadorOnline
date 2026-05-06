@@ -1,13 +1,6 @@
-// Helpers para manejo de Costeos con Supabase
 import { Costing } from '@/types';
-import { supabase, hasValidSupabaseConfig, createSupabaseClient } from './config';
+import { api } from '@/lib/api-client';
 
-// Helper para obtener el cliente correcto
-function getSupabaseClient() {
-  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
-}
-
-// Función auxiliar para convertir de snake_case a camelCase
 function toCosting(row: any): Costing {
   return {
     id: row.id,
@@ -17,22 +10,21 @@ function toCosting(row: any): Costing {
     type: row.type,
     modality: row.modality,
     clientId: row.client_id,
-    itemsMO: row.items_mo || [],
-    itemsMaterials: row.items_materials || [],
-    itemsEquipment: row.items_equipment || [],
-    itemsLogistics: row.items_logistics || { mode: 'km', subtotal: 0 },
-    itemsIndirects: row.items_indirects || [],
-    ggPercentage: row.gg_percentage || 12,
-    contingencyItems: row.contingency_items || [],
-    utilityPercentage: row.utility_percentage || 55,
-    totals: row.totals,
+    itemsMO: typeof row.items_mo === 'string' ? JSON.parse(row.items_mo) : (row.items_mo || []),
+    itemsMaterials: typeof row.items_materials === 'string' ? JSON.parse(row.items_materials) : (row.items_materials || []),
+    itemsEquipment: typeof row.items_equipment === 'string' ? JSON.parse(row.items_equipment) : (row.items_equipment || []),
+    itemsLogistics: typeof row.items_logistics === 'string' ? JSON.parse(row.items_logistics) : (row.items_logistics || { mode: 'km', subtotal: 0 }),
+    itemsIndirects: typeof row.items_indirects === 'string' ? JSON.parse(row.items_indirects) : (row.items_indirects || []),
+    ggPercentage: row.gg_percentage ?? 12,
+    contingencyItems: typeof row.contingency_items === 'string' ? JSON.parse(row.contingency_items) : (row.contingency_items || []),
+    utilityPercentage: row.utility_percentage ?? 55,
+    totals: typeof row.totals === 'string' ? JSON.parse(row.totals) : row.totals,
     createdAt: row.created_at ? new Date(row.created_at) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     createdBy: row.created_by,
   };
 }
 
-// Función auxiliar para convertir de camelCase a snake_case
 function toRow(costing: Partial<Costing>): any {
   const row: any = {};
   if (costing.costingNumber !== undefined) row.costing_number = costing.costingNumber;
@@ -54,143 +46,32 @@ function toRow(costing: Partial<Costing>): any {
 }
 
 export async function createCosting(costingData: Omit<Costing, 'id'>, tenantId?: string): Promise<string> {
-  if (!hasValidSupabaseConfig()) {
-    throw new Error('Supabase no está configurado');
-  }
-
-  const supabaseClient = getSupabaseClient();
-  const rowData = toRow(costingData);
-  
-  // Obtener el usuario actual
-  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-  
-  if (userError || !user) {
-    throw new Error('Usuario no autenticado. Debes iniciar sesión para crear costeos.');
-  }
-
-  // Agregar created_by
-  rowData.created_by = user.id;
-
-  // Obtener tenant_id si no se proporciona
-  let finalTenantId = tenantId;
-  
-  if (!finalTenantId) {
-    // Buscar el tenant_id del usuario desde memberships
-    const { data: memberships, error: membershipError } = await supabaseClient
-      .from('memberships')
-      .select('tenant_id')
-      .eq('user_id', user.id)
-      .limit(1);
-
-    if (membershipError || !memberships || memberships.length === 0) {
-      throw new Error('No se encontró un tenant asociado. Asegúrate de estar asociado a una empresa.');
-    }
-
-    finalTenantId = memberships[0].tenant_id;
-  }
-
-  if (!finalTenantId) {
-    throw new Error('No se pudo determinar el tenant_id. Proporciona un tenant_id o asegúrate de estar asociado a una empresa.');
-  }
-
-  // Agregar tenant_id
-  rowData.tenant_id = finalTenantId;
-
-  const { data, error } = await supabaseClient
-    .from('costings')
-    .insert(rowData)
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('[createCosting] Error completo:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
-    throw new Error(`Error al crear costeo: ${error.message || 'Error desconocido'}`);
-  }
-
-  if (!data) {
-    throw new Error('No se pudo crear el costeo. No se recibió confirmación del servidor.');
-  }
-
-  return data.id;
+  const data = await api.costings.create(toRow(costingData), tenantId);
+  return data.costing.id;
 }
 
 export async function getCostingById(costingId: string): Promise<Costing | null> {
-  if (!hasValidSupabaseConfig()) {
+  try {
+    const data = await api.costings.getById(costingId);
+    return data.costing ? toCosting(data.costing) : null;
+  } catch {
     return null;
   }
-
-  const supabaseClient = getSupabaseClient();
-  const { data, error } = await supabaseClient
-    .from('costings')
-    .select('*')
-    .eq('id', costingId)
-    .single();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return toCosting(data);
 }
 
 export async function getAllCostings(tenantId?: string): Promise<Costing[]> {
-  if (!hasValidSupabaseConfig()) {
+  try {
+    const data = await api.costings.getAll(tenantId);
+    return (data.costings || []).map(toCosting);
+  } catch {
     return [];
   }
-
-  const supabaseClient = getSupabaseClient();
-  let query = supabaseClient
-    .from('costings')
-    .select('*');
-
-  // Filtrar por tenant_id si se proporciona
-  if (tenantId) {
-    query = query.eq('tenant_id', tenantId);
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data.map(toCosting);
 }
 
 export async function updateCosting(costingId: string, costingData: Partial<Costing>): Promise<void> {
-  if (!hasValidSupabaseConfig()) {
-    throw new Error('Supabase no está configurado');
-  }
-
-  const supabaseClient = getSupabaseClient();
-  const { error } = await supabaseClient
-    .from('costings')
-    .update(toRow(costingData))
-    .eq('id', costingId);
-
-  if (error) {
-    throw new Error(`Error al actualizar costeo: ${error.message}`);
-  }
+  await api.costings.update(costingId, toRow(costingData));
 }
 
 export async function deleteCosting(costingId: string): Promise<void> {
-  if (!hasValidSupabaseConfig()) {
-    throw new Error('Supabase no está configurado');
-  }
-
-  const supabaseClient = getSupabaseClient();
-  const { error } = await supabaseClient
-    .from('costings')
-    .delete()
-    .eq('id', costingId);
-
-  if (error) {
-    throw new Error(`Error al eliminar costeo: ${error.message}`);
-  }
+  await api.costings.delete(costingId);
 }
-

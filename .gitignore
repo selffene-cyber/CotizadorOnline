@@ -44,3 +44,17 @@ next-env.d.ts
 .firebase
 firebase-debug.log
 firebase-debug.*.log
+
+# cloudflare worker
+api/node_modules
+api/.wrangler
+api/dist
+
+# junk files
+Untitled-*
+app/Untitled-*
+app/#*
+app/##*
+app/*.md
+!app/**/README.md
+*.tmp

@@ -1,14 +1,7 @@
-// Helpers para configuración de empresa con Supabase
 import { CompanySettings } from '@/types';
-import { supabase, hasValidSupabaseConfig, createSupabaseClient } from './config';
-
-// Helper para obtener el cliente correcto
-function getSupabaseClient() {
-  return typeof window !== 'undefined' ? createSupabaseClient() : supabase;
-}
+import { api } from '@/lib/api-client';
 
 function toSettings(row: any): CompanySettings {
-  // Mapear todos los campos desde la base de datos
   return {
     companyName: row.company_name || '',
     companyRUT: row.rut || '',
@@ -61,103 +54,14 @@ function toRow(settings: Partial<CompanySettings>): any {
 }
 
 export async function getCompanySettings(tenantId?: string): Promise<CompanySettings | null> {
-  if (!hasValidSupabaseConfig()) {
+  try {
+    const data = await api.settings.get(tenantId);
+    return data.settings ? toSettings(data.settings) : null;
+  } catch {
     return null;
   }
-
-  const supabaseClient = getSupabaseClient();
-  let query = supabaseClient
-    .from('company_settings')
-    .select('*');
-
-  // Filtrar por tenant_id si se proporciona
-  if (tenantId) {
-    query = query.eq('tenant_id', tenantId);
-  }
-
-  const { data, error } = await query.limit(1).maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return toSettings(data);
 }
 
 export async function saveCompanySettings(settings: CompanySettings, tenantId?: string): Promise<void> {
-  if (!hasValidSupabaseConfig()) {
-    throw new Error('Supabase no está configurado');
-  }
-
-  const supabaseClient = getSupabaseClient();
-  
-  // Obtener el usuario actual
-  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-  
-  if (userError || !user) {
-    throw new Error('Usuario no autenticado. Debes iniciar sesión para guardar configuración.');
-  }
-
-  // Obtener tenant_id si no se proporciona
-  let finalTenantId = tenantId;
-  
-  if (!finalTenantId) {
-    // Buscar el tenant_id del usuario desde memberships
-    const { data: memberships, error: membershipError } = await supabaseClient
-      .from('memberships')
-      .select('tenant_id')
-      .eq('user_id', user.id)
-      .limit(1);
-
-    if (membershipError || !memberships || memberships.length === 0) {
-      throw new Error('No se encontró un tenant asociado. Asegúrate de estar asociado a una empresa.');
-    }
-
-    finalTenantId = memberships[0].tenant_id;
-  }
-
-  if (!finalTenantId) {
-    throw new Error('No se pudo determinar el tenant_id. Proporciona un tenant_id o asegúrate de estar asociado a una empresa.');
-  }
-
-  // Verificar si ya existe configuración para este tenant
-  const existing = await getCompanySettings(finalTenantId);
-
-  const rowData = toRow(settings);
-  rowData.tenant_id = finalTenantId;
-
-  if (existing) {
-    // Actualizar
-    const { error } = await supabaseClient
-      .from('company_settings')
-      .update(rowData)
-      .eq('tenant_id', finalTenantId);
-
-    if (error) {
-      console.error('[saveCompanySettings] Error actualizando:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-      throw new Error(`Error al actualizar configuración: ${error.message || 'Error desconocido'}`);
-    }
-  } else {
-    // Crear nuevo
-    const { error } = await supabaseClient
-      .from('company_settings')
-      .insert(rowData)
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('[saveCompanySettings] Error insertando:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-      throw new Error(`Error al guardar configuración: ${error.message || 'Error desconocido'}`);
-    }
-  }
+  await api.settings.save(toRow(settings), tenantId);
 }

@@ -1,0 +1,27 @@
+name = "cotizador-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-14"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[vars]
+ENVIRONMENT = "production"
+APP_URL = "https://cot.piwisuite.cl"
+GOOGLE_CLIENT_ID = ""
+GITHUB_CLIENT_ID = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cotizador-db"
+database_id = "09075d58-b2a7-4ade-8241-02a8d52eb0b6"
+
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "cotizador-assets"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "api.cot.piwisuite.cl/*"
+zone_name = "piwisuite.cl"

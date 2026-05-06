@@ -1,0 +1,26 @@
+{
+  "name": "cotizador-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute cotizador-db --local --file=src/db/migrations/001_initial.sql",
+    "db:migrate:prod": "wrangler d1 execute cotizador-db --remote --file=src/db/migrations/001_initial.sql",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "@google-cloud/local-auth": "^3.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250414.0",
+    "wrangler": "^4.12.0",
+    "typescript": "^5.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.9",
+    "service-worker": "^0.0.0"
+  }
+}
