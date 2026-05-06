@@ -1,33 +1,25 @@
-// Helper para obtener el tenant_id actual desde el contexto
-// Este archivo se usa en funciones del servidor que necesitan el tenant_id
+'use client';
 
-import { cookies } from 'next/headers';
+import { api } from '@/lib/api-client';
 
-/**
- * Obtener el tenant_id desde las cookies (establecido por el middleware o contexto)
- */
 export async function getCurrentTenantId(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
   try {
-    const cookieStore = await cookies();
-    const tenantId = cookieStore.get('tenant_id')?.value;
-    return tenantId || null;
-  } catch (error) {
-    console.error('[getCurrentTenantId] Error:', error);
-    return null;
-  }
+    const data = await api.auth.me();
+    if (data.membership?.tenant_id) {
+      return data.membership.tenant_id;
+    }
+  } catch {}
+  return null;
 }
 
-/**
- * Obtener el tenant_slug desde las cookies
- */
 export async function getCurrentTenantSlug(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
   try {
-    const cookieStore = await cookies();
-    const tenantSlug = cookieStore.get('tenant_slug')?.value;
-    return tenantSlug || null;
-  } catch (error) {
-    console.error('[getCurrentTenantSlug] Error:', error);
-    return null;
-  }
+    const data = await api.auth.me();
+    if (data.membership?.tenant_slug) {
+      return data.membership.tenant_slug;
+    }
+  } catch {}
+  return null;
 }
-
