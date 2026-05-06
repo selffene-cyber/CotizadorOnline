@@ -3,7 +3,7 @@
 // Página para aceptar invitaciones
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '@/lib/supabase-auth-context';
+import { useAuth } from '@/lib/jwt-auth-context';
 import { getInvitationByToken, acceptInvitation, rejectInvitation, type Invitation } from '@/supabase/invitations';
 import Button from '@/components/ui/Button';
 
